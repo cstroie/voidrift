@@ -180,12 +180,19 @@ func main() {
 		case "!top":
 			reply(game.CmdTop())
 
+		case "!pos":
+			target := ""
+			if len(fields) >= 2 {
+				target = fields[1]
+			}
+			reply(game.CmdPos(src, target))
+
 		case "!help":
 			reply("IdleRPG commands: " +
 				"!register <nick> <class> <pass> | " +
 				"!login <pass> | !logout | " +
 				"!align <good|neutral|evil> | " +
-				"!status [nick] | !whoami | !top | " +
+				"!status [nick] | !whoami | !top | !pos [nick] | " +
 				"!gcreate <name> | !ginvite <nick> | !gaccept | !gdecline | " +
 				"!gleave | !gkick <nick> | !ginfo [name] | !gtop")
 

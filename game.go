@@ -112,11 +112,16 @@ var questDescs = []string{
 
 const questMinLevel = 15
 const questMinPlayers = 4
+const gridSize = 500
 
 type Quest struct {
 	Questers []*Player
 	EndsAt   time.Time
 	Desc     string
+	// Grid-based quest fields.
+	IsGrid  bool
+	QX, QY  int
+	Reached map[string]bool // lowercase nicks that have reached the target
 }
 
 type Player struct {
@@ -130,6 +135,7 @@ type Player struct {
 	Items     [10]int // item level per slot
 	Online    bool
 	Addr      string // nick!user@host when online
+	X, Y      int    // position on the 500×500 grid (randomised on each login)
 }
 
 func (p *Player) itemSum() int {
@@ -180,12 +186,14 @@ func (g *Game) OnJoin(src string) {
 	if p != nil {
 		p.Online = true
 		p.Addr = src
+		p.X = mathrand.Intn(gridSize)
+		p.Y = mathrand.Intn(gridSize)
 	}
 	g.mu.Unlock()
 	if p != nil {
 		g.save()
-		g.say(fmt.Sprintf("%s, the level %d %s, has joined IdleRPG! Next level in %s.",
-			p.Nick, p.Level, p.Class, fmtDuration(p.TTL)))
+		g.say(fmt.Sprintf("%s, the level %d %s, has joined IdleRPG at (%d,%d)! Next level in %s.",
+			p.Nick, p.Level, p.Class, p.X, p.Y, fmtDuration(p.TTL)))
 	}
 }
 
@@ -412,6 +420,45 @@ func (g *Game) CmdStatus(src, targetNick string) string {
 		p.Nick, alignNames[p.Alignment], p.Level, p.Class, status, questInfo, fmtDuration(p.TTL), p.itemSum())
 }
 
+// CmdPos returns the grid position of a player (self if no target given).
+func (g *Game) CmdPos(src, targetNick string) string {
+	if targetNick == "" {
+		targetNick = extractNick(src)
+	}
+	g.mu.Lock()
+	p, ok := g.players[strings.ToLower(targetNick)]
+	if !ok {
+		g.mu.Unlock()
+		return fmt.Sprintf("No character found for %s.", targetNick)
+	}
+	if !p.Online {
+		g.mu.Unlock()
+		return fmt.Sprintf("%s is offline and has no position.", p.Nick)
+	}
+	x, y, nick := p.X, p.Y, p.Nick
+
+	// Find other players sharing the same tile.
+	var neighbours []string
+	for _, op := range g.players {
+		if op != p && op.Online && op.X == x && op.Y == y {
+			neighbours = append(neighbours, op.Nick)
+		}
+	}
+
+	// Check if on a quest destination.
+	questNote := ""
+	if g.quest != nil && g.quest.IsGrid && g.quest.QX == x && g.quest.QY == y {
+		questNote = " [quest destination!]"
+	}
+	g.mu.Unlock()
+
+	info := fmt.Sprintf("%s is at (%d,%d)%s on a %d×%d grid.", nick, x, y, questNote, gridSize, gridSize)
+	if len(neighbours) > 0 {
+		info += fmt.Sprintf(" Also here: %s.", strings.Join(neighbours, ", "))
+	}
+	return info
+}
+
 // CmdTop returns the top 5 players by level.
 func (g *Game) CmdTop() string {
 	g.mu.Lock()
@@ -485,6 +532,50 @@ func (g *Game) tick(stop <-chan struct{}) {
 			}
 		}
 
+		// Move every online player one step in a random direction (toroidal wrap).
+		posMap := make(map[[2]int][]*Player, len(online))
+		for _, p := range online {
+			p.X = (p.X + mathrand.Intn(3) - 1 + gridSize) % gridSize
+			p.Y = (p.Y + mathrand.Intn(3) - 1 + gridSize) % gridSize
+			key := [2]int{p.X, p.Y}
+			posMap[key] = append(posMap[key], p)
+		}
+
+		// Location-based encounters: 1/len(online) chance per shared tile.
+		var encounterPairs [][2]*Player
+		if len(online) > 0 {
+			for _, group := range posMap {
+				if len(group) >= 2 && mathrand.Intn(len(online)) == 0 {
+					mathrand.Shuffle(len(group), func(i, j int) { group[i], group[j] = group[j], group[i] })
+					encounterPairs = append(encounterPairs, [2]*Player{group[0], group[1]})
+					// One encounter per tick to avoid flooding.
+					break
+				}
+			}
+		}
+		if len(encounterPairs) > 0 {
+			ep := encounterPairs[0]
+			msgs = append(msgs, fmt.Sprintf("%s and %s stumble into each other at (%d,%d)!",
+				ep[0].Nick, ep[1].Nick, ep[0].X, ep[0].Y))
+		}
+
+		// Grid quest progress: check if questers have reached the target.
+		if g.quest != nil && g.quest.IsGrid {
+			for _, qp := range g.quest.Questers {
+				nick := strings.ToLower(qp.Nick)
+				if !g.quest.Reached[nick] && qp.X == g.quest.QX && qp.Y == g.quest.QY {
+					g.quest.Reached[nick] = true
+					msgs = append(msgs, fmt.Sprintf("%s has reached the quest destination (%d,%d)!",
+						qp.Nick, g.quest.QX, g.quest.QY))
+				}
+			}
+			allReached := len(g.quest.Reached) == len(g.quest.Questers)
+			if allReached {
+				msgs = append(msgs, g.resolveQuest(online)...)
+				g.quest = nil
+			}
+		}
+
 		// Hand of God: ~once per 20 days across the whole server.
 		if len(online) > 0 && mathrand.Intn(86400*20) == 0 {
 			msgs = append(msgs, g.handOfGod(online[mathrand.Intn(len(online))]))
@@ -515,6 +606,9 @@ func (g *Game) tick(stop <-chan struct{}) {
 
 		for _, msg := range msgs {
 			g.say(msg)
+		}
+		for _, ep := range encounterPairs {
+			g.battle(ep[0], ep[1])
 		}
 		for _, p := range levelUps {
 			g.doLevelUp(p)
@@ -859,15 +953,35 @@ func (g *Game) tryStartQuest(online []*Player) []string {
 
 	desc := questDescs[mathrand.Intn(len(questDescs))]
 	duration := time.Duration(mathrand.Intn(3)+1) * time.Hour // 1–3 hours
-	g.quest = &Quest{
-		Questers: questers,
-		EndsAt:   time.Now().Add(duration),
-		Desc:     desc,
-	}
 
 	names := make([]string, questMinPlayers)
 	for i, p := range questers {
 		names[i] = p.Nick
+	}
+
+	// 50% chance of a grid-based quest.
+	if mathrand.Intn(2) == 0 {
+		qx := mathrand.Intn(gridSize)
+		qy := mathrand.Intn(gridSize)
+		g.quest = &Quest{
+			Questers: questers,
+			EndsAt:   time.Now().Add(duration),
+			Desc:     desc,
+			IsGrid:   true,
+			QX:       qx,
+			QY:       qy,
+			Reached:  make(map[string]bool),
+		}
+		return []string{
+			fmt.Sprintf("Grid quest begun! %s must navigate to (%d,%d) to %s. They have %s.",
+				strings.Join(names, ", "), qx, qy, desc, fmtDuration(int64(duration.Seconds()))),
+		}
+	}
+
+	g.quest = &Quest{
+		Questers: questers,
+		EndsAt:   time.Now().Add(duration),
+		Desc:     desc,
 	}
 	return []string{
 		fmt.Sprintf("Quest begun! %s have been sent to %s. They must complete it within %s.",
@@ -906,6 +1020,12 @@ func (g *Game) resolveQuest(online []*Player) []string {
 				qp.TTL = 1
 			}
 		}
+		if quest.IsGrid {
+			return []string{
+				fmt.Sprintf("Grid quest complete! %s have all reached (%d,%d) and succeeded in their quest to %s! Each receives a 25%% TTL bonus.",
+					strings.Join(names, ", "), quest.QX, quest.QY, quest.Desc),
+			}
+		}
 		return []string{
 			fmt.Sprintf("Quest complete! %s have succeeded in their quest to %s! Each receives a 25%% TTL bonus.",
 				strings.Join(names, ", "), quest.Desc),
@@ -915,6 +1035,20 @@ func (g *Game) resolveQuest(online []*Player) []string {
 	// Failure: all online players are penalised p15.
 	for _, p := range online {
 		g.applyPenalty(p, 15)
+	}
+	if quest.IsGrid {
+		reached := make([]string, 0, len(quest.Reached))
+		for nick := range quest.Reached {
+			reached = append(reached, nick)
+		}
+		suffix := "none reached the destination"
+		if len(reached) > 0 {
+			suffix = fmt.Sprintf("only %s reached (%d,%d)", strings.Join(reached, ", "), quest.QX, quest.QY)
+		}
+		return []string{
+			fmt.Sprintf("Grid quest failed! %s did not all reach (%d,%d) to %s (%s). All online players suffer a penalty!",
+				strings.Join(names, ", "), quest.QX, quest.QY, quest.Desc, suffix),
+		}
 	}
 	return []string{
 		fmt.Sprintf("Quest failed! %s did not complete their quest to %s in time. All online players suffer a penalty!",

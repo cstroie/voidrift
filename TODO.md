@@ -17,7 +17,7 @@
 - [x] **Evil-player item theft** — daily steal attempt by evil-aligned players
       against good-aligned players (independent of battle).
 - [x] **Guild system** — players can form guilds; guild battles and guild quests.
-- [ ] **Grid/map system** — 500×500 coordinate space; players move randomly each second;
+- [x] **Grid/map system** — 500×500 coordinate space; players move randomly each second;
       location-based 1v1 encounters when two players share a tile.
 - [ ] **Class bonuses** — weapon-slot bonuses tied to character class
       (e.g. Warriors get +ATK with weapon items).
