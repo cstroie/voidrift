@@ -18,6 +18,7 @@ func main() {
 	channel  := flag.String("channel", "#idlerpg", "Game channel")
 	dataFile   := flag.String("data", "idlerpg.json", "Player data file")
 	guildsFile := flag.String("guilds", "guilds.json", "Guild data file")
+	autologin  := flag.Bool("autologin", false, "Auto-login registered players already in channel on startup (useful during dev)")
 	flag.Parse()
 
 	cfg := irc.NewConfig(*nick, "idlerpg", "IdleRPG bot")
@@ -42,6 +43,37 @@ func main() {
 		log.Println("Connected, joining", *channel)
 		c.Join(*channel)
 		game.start()
+		if *autologin {
+			c.Who(*channel)
+		}
+	})
+
+	// WHO reply: collect nick!user@host for every channel member.
+	var whoQueue []string
+	conn.HandleFunc("352", func(c *irc.Conn, line *irc.Line) {
+		// Args: [botnick, #channel, user, host, server, nick, flags, ...]
+		if !*autologin || len(line.Args) < 6 {
+			return
+		}
+		memberNick := line.Args[5]
+		if memberNick == *nick {
+			return // skip the bot itself
+		}
+		src := fmt.Sprintf("%s!%s@%s", memberNick, line.Args[2], line.Args[3])
+		whoQueue = append(whoQueue, src)
+	})
+
+	// End of WHO: fire OnJoin for every queued member.
+	conn.HandleFunc("315", func(c *irc.Conn, line *irc.Line) {
+		if !*autologin {
+			return
+		}
+		queue := whoQueue
+		whoQueue = nil
+		log.Printf("Auto-login: %d channel member(s) found", len(queue))
+		for _, src := range queue {
+			game.OnJoin(src)
+		}
 	})
 
 	conn.HandleFunc("JOIN", func(c *irc.Conn, line *irc.Line) {
