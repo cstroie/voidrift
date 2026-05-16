@@ -16,7 +16,7 @@
       (Good: 1/50, Evil: 1/20); crits apply an extra TTL swing.
 - [x] **Evil-player item theft** — daily steal attempt by evil-aligned players
       against good-aligned players (independent of battle).
-- [ ] **Guild system** — players can form guilds; guild battles and guild quests.
+- [x] **Guild system** — players can form guilds; guild battles and guild quests.
 - [ ] **Grid/map system** — 500×500 coordinate space; players move randomly each second;
       location-based 1v1 encounters when two players share a tile.
 - [ ] **Class bonuses** — weapon-slot bonuses tied to character class

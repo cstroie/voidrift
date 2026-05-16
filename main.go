@@ -16,7 +16,8 @@ func main() {
 	password := flag.String("password", "", "Server password")
 	ssl      := flag.Bool("ssl", false, "Use SSL")
 	channel  := flag.String("channel", "#idlerpg", "Game channel")
-	dataFile := flag.String("data", "idlerpg.json", "Player data file")
+	dataFile   := flag.String("data", "idlerpg.json", "Player data file")
+	guildsFile := flag.String("guilds", "guilds.json", "Guild data file")
 	flag.Parse()
 
 	cfg := irc.NewConfig(*nick, "idlerpg", "IdleRPG bot")
@@ -32,7 +33,7 @@ func main() {
 		conn.Privmsg(*channel, msg)
 	}
 
-	game := newGame(*dataFile, say)
+	game := newGame(*dataFile, *guildsFile, say)
 
 	conn.HandleFunc("connected", func(c *irc.Conn, line *irc.Line) {
 		log.Println("Connected, joining", *channel)
@@ -118,6 +119,47 @@ func main() {
 			msg := game.CmdLogout(src)
 			reply(msg)
 
+		case "!gcreate":
+			if len(fields) < 2 {
+				reply("Usage: !gcreate <name>")
+				return
+			}
+			name := strings.Join(fields[1:], " ")
+			say(game.CmdGCreate(src, name))
+
+		case "!ginvite":
+			if len(fields) < 2 {
+				reply("Usage: !ginvite <nick>")
+				return
+			}
+			reply(game.CmdGInvite(src, fields[1]))
+
+		case "!gaccept":
+			say(game.CmdGAccept(src))
+
+		case "!gdecline":
+			reply(game.CmdGDecline(src))
+
+		case "!gleave":
+			say(game.CmdGLeave(src))
+
+		case "!gkick":
+			if len(fields) < 2 {
+				reply("Usage: !gkick <nick>")
+				return
+			}
+			say(game.CmdGKick(src, fields[1]))
+
+		case "!ginfo":
+			name := ""
+			if len(fields) >= 2 {
+				name = strings.Join(fields[1:], " ")
+			}
+			reply(game.CmdGInfo(src, name))
+
+		case "!gtop":
+			reply(game.CmdGTop())
+
 		case "!align":
 			if len(fields) < 2 {
 				reply("Usage: !align <good|neutral|evil>")
@@ -140,14 +182,12 @@ func main() {
 
 		case "!help":
 			reply("IdleRPG commands: " +
-				"!register <nick> <class> <pass> — create character | " +
-				"!login <pass> — log in (stay idle to level up!) | " +
-				"!logout — go offline | " +
-				"!align <good|neutral|evil> — set alignment (costs time to change) | " +
-				"!status [nick] — show level, TTL, item total | " +
-				"!whoami — your own status | " +
-				"!top — top 5 players. " +
-				"Talking, changing nick, parting or quitting adds penalty time.")
+				"!register <nick> <class> <pass> | " +
+				"!login <pass> | !logout | " +
+				"!align <good|neutral|evil> | " +
+				"!status [nick] | !whoami | !top | " +
+				"!gcreate <name> | !ginvite <nick> | !gaccept | !gdecline | " +
+				"!gleave | !gkick <nick> | !ginfo [name] | !gtop")
 
 		default:
 			// Penalize online players for talking in channel (not PMs, not commands).

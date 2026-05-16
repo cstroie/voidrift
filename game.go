@@ -141,21 +141,26 @@ func (p *Player) itemSum() int {
 }
 
 type Game struct {
-	players  map[string]*Player // keyed by lowercase nick
-	mu       sync.Mutex
-	dataFile string
-	say      func(string) // sends a message to the game channel
-	stopTick chan struct{}
-	quest    *Quest
+	players    map[string]*Player // keyed by lowercase nick
+	guilds     map[string]*Guild  // keyed by lowercase guild name
+	mu         sync.Mutex
+	dataFile   string
+	guildsFile string
+	say        func(string) // sends a message to the game channel
+	stopTick   chan struct{}
+	quest      *Quest
 }
 
-func newGame(dataFile string, say func(string)) *Game {
+func newGame(dataFile, guildsFile string, say func(string)) *Game {
 	g := &Game{
-		players:  make(map[string]*Player),
-		dataFile: dataFile,
-		say:      say,
+		players:    make(map[string]*Player),
+		guilds:     make(map[string]*Guild),
+		dataFile:   dataFile,
+		guildsFile: guildsFile,
+		say:        say,
 	}
 	g.load()
+	g.loadGuilds()
 	return g
 }
 
@@ -219,23 +224,38 @@ func (g *Game) OnQuit(src string) {
 	}
 }
 
-// OnNick applies nick-change penalty and re-keys the player map.
+// OnNick applies nick-change penalty and re-keys the player map and guild records.
 func (g *Game) OnNick(src, newNick string) {
 	oldNick := extractNick(src)
+	oldKey := strings.ToLower(oldNick)
+	newKey := strings.ToLower(newNick)
 	g.mu.Lock()
-	p := g.players[strings.ToLower(oldNick)]
+	p := g.players[oldKey]
 	if p != nil && p.Online {
 		g.applyPenalty(p, 30)
-		delete(g.players, strings.ToLower(oldNick))
+		delete(g.players, oldKey)
 		p.Nick = newNick
 		p.Addr = strings.Replace(p.Addr, oldNick, newNick, 1)
-		g.players[strings.ToLower(newNick)] = p
+		g.players[newKey] = p
+		// Update guild membership and leadership.
+		if guild := g.playerGuild(oldKey); guild != nil {
+			for i, m := range guild.Members {
+				if m == oldKey {
+					guild.Members[i] = newKey
+					break
+				}
+			}
+			if guild.Leader == oldKey {
+				guild.Leader = newKey
+			}
+		}
 	} else {
 		p = nil
 	}
 	g.mu.Unlock()
 	if p != nil {
 		g.save()
+		g.saveGuilds()
 	}
 }
 
@@ -473,6 +493,11 @@ func (g *Game) tick(stop <-chan struct{}) {
 		// Team battle: ~4 times per day when at least 6 players are online.
 		if len(online) >= 6 && mathrand.Intn(86400/4) == 0 {
 			msgs = append(msgs, g.teamBattle(online)...)
+		}
+
+		// Guild battle: ~once per day when 2+ guilds have 2+ online members.
+		if mathrand.Intn(86400) == 0 {
+			msgs = append(msgs, g.guildBattle()...)
 		}
 
 		// Quest: ~once per day when conditions are met and no quest is active.
