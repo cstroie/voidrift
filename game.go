@@ -65,6 +65,36 @@ var handOfGodMsgs = [2][]string{
 	},
 }
 
+const (
+	AlignEvil    int8 = -1
+	AlignNeutral int8 = 0
+	AlignGood    int8 = 1
+)
+
+var alignNames = map[int8]string{
+	AlignEvil:    "evil",
+	AlignNeutral: "neutral",
+	AlignGood:    "good",
+}
+
+var goodEventMsgs = []string{
+	"The light of %s's god shines upon %s and %s! Both surge ahead %d%%.",
+	"%s and %s are united by divine favour! Both gain %d%%.",
+	"The gods bless the fellowship of %s and %s! Both advance %d%%.",
+}
+
+var evilStealMsgs = []string{
+	"%s lurks in the shadows and makes off with %s's %s (level %d)!",
+	"%s bribes a corrupt merchant to acquire %s's %s (level %d)!",
+	"Under cover of darkness, %s pilfers %s's %s (level %d)!",
+}
+
+var forsakenMsgs = []string{
+	"%s is forsaken by their dark patron! TTL increased by %d%%.",
+	"The shadows abandon %s. TTL increased by %d%%.",
+	"%s's evil deeds catch up with them. TTL increased by %d%%.",
+}
+
 var questDescs = []string{
 	"slay the dragon terrorising the village of Mal'Gorn",
 	"recover the stolen Orb of Aldur from the goblin warrens",
@@ -90,15 +120,16 @@ type Quest struct {
 }
 
 type Player struct {
-	Nick     string
-	Class    string
-	PassSalt string
-	PassHash string
-	Level    int
-	TTL      int64   // seconds until next level
-	Items    [10]int // item level per slot
-	Online   bool
-	Addr     string // nick!user@host when online
+	Nick      string
+	Class     string
+	PassSalt  string
+	PassHash  string
+	Alignment int8
+	Level     int
+	TTL       int64   // seconds until next level
+	Items     [10]int // item level per slot
+	Online    bool
+	Addr      string // nick!user@host when online
 }
 
 func (p *Player) itemSum() int {
@@ -299,6 +330,38 @@ func (g *Game) CmdLogout(src string) string {
 	return fmt.Sprintf("%s has logged out of IdleRPG.", nick)
 }
 
+// CmdAlign sets a player's alignment, applying a penalty if changing.
+func (g *Game) CmdAlign(src, align string) string {
+	var newAlign int8
+	switch strings.ToLower(align) {
+	case "good":
+		newAlign = AlignGood
+	case "evil":
+		newAlign = AlignEvil
+	case "neutral":
+		newAlign = AlignNeutral
+	default:
+		return "Usage: !align <good|neutral|evil>"
+	}
+	g.mu.Lock()
+	p := g.findByAddr(src)
+	if p == nil {
+		g.mu.Unlock()
+		return "You are not logged in."
+	}
+	changed := p.Alignment != newAlign
+	p.Alignment = newAlign
+	if changed {
+		g.applyPenalty(p, 75)
+	}
+	g.mu.Unlock()
+	g.save()
+	if changed {
+		return fmt.Sprintf("%s is now %s. Changing alignment costs time — TTL adjusted.", p.Nick, alignNames[newAlign])
+	}
+	return fmt.Sprintf("%s is already %s.", p.Nick, alignNames[newAlign])
+}
+
 // CmdStatus returns a player's status string.
 func (g *Game) CmdStatus(src, targetNick string) string {
 	if targetNick == "" {
@@ -325,8 +388,8 @@ func (g *Game) CmdStatus(src, targetNick string) string {
 		}
 	}
 	g.mu.Unlock()
-	return fmt.Sprintf("%s, the level %d %s [%s]%s — TTL: %s — Items: %d",
-		p.Nick, p.Level, p.Class, status, questInfo, fmtDuration(p.TTL), p.itemSum())
+	return fmt.Sprintf("%s, the %s level %d %s [%s]%s — TTL: %s — Items: %d",
+		p.Nick, alignNames[p.Alignment], p.Level, p.Class, status, questInfo, fmtDuration(p.TTL), p.itemSum())
 }
 
 // CmdTop returns the top 5 players by level.
@@ -381,8 +444,24 @@ func (g *Game) tick(stop <-chan struct{}) {
 			p.TTL--
 			if p.TTL <= 0 {
 				levelUps = append(levelUps, p)
-			} else if mathrand.Intn(86400) == 0 {
-				msgs = append(msgs, g.randomEvent(p))
+			} else {
+				if mathrand.Intn(86400) == 0 {
+					msgs = append(msgs, g.randomEvent(p))
+				}
+				switch p.Alignment {
+				case AlignGood:
+					// ~once per 12 days per good player
+					if mathrand.Intn(86400*12) == 0 {
+						if m := g.goodAlignmentEvent(p, online); m != "" {
+							msgs = append(msgs, m)
+						}
+					}
+				case AlignEvil:
+					// ~once per 8 days per evil player
+					if mathrand.Intn(86400*8) == 0 {
+						msgs = append(msgs, g.evilAlignmentEvent(p, online))
+					}
+				}
 			}
 		}
 
@@ -474,8 +553,19 @@ func (g *Game) doLevelUp(p *Player) {
 func (g *Game) battle(a, b *Player) {
 	g.mu.Lock()
 
-	aSum := a.itemSum()
-	bSum := b.itemSum()
+	// Alignment modifies effective item sum: good +10%, evil -10%.
+	alignBonus := func(p *Player, sum int) int {
+		switch p.Alignment {
+		case AlignGood:
+			return sum + sum/10
+		case AlignEvil:
+			return sum - sum/10
+		}
+		return sum
+	}
+
+	aSum := alignBonus(a, a.itemSum())
+	bSum := alignBonus(b, b.itemSum())
 	if aSum < 1 {
 		aSum = 1
 	}
@@ -493,7 +583,19 @@ func (g *Game) battle(a, b *Player) {
 		wRoll, lRoll = bRoll, aRoll
 	}
 
+	// Critical hit: Good 1/50, Evil 1/20 — doubles the TTL swing.
+	crit := false
+	switch winner.Alignment {
+	case AlignGood:
+		crit = mathrand.Intn(50) == 0
+	case AlignEvil:
+		crit = mathrand.Intn(20) == 0
+	}
+
 	pct := int(math.Max(float64(loser.Level)/4.0, 7))
+	if crit {
+		pct *= 2
+	}
 	change := winner.TTL * int64(pct) / 100
 	if change < 1 {
 		change = 1
@@ -510,8 +612,12 @@ func (g *Game) battle(a, b *Player) {
 	stealMsg := g.tryStealItem(winner, loser)
 	g.mu.Unlock()
 
-	g.say(fmt.Sprintf("%s [%d/%d] battles %s [%d/%d] and wins! TTL adjusted by %d%%.",
-		wName, wRoll, wSum, lName, lRoll, lSum, pct))
+	critNote := ""
+	if crit {
+		critNote = " Critical hit!"
+	}
+	g.say(fmt.Sprintf("%s [%d/%d] battles %s [%d/%d] and wins!%s TTL adjusted by %d%%.",
+		wName, wRoll, wSum, lName, lRoll, lSum, critNote, pct))
 	if stealMsg != "" {
 		g.say(stealMsg)
 	}
@@ -789,6 +895,68 @@ func (g *Game) resolveQuest(online []*Player) []string {
 		fmt.Sprintf("Quest failed! %s did not complete their quest to %s in time. All online players suffer a penalty!",
 			strings.Join(names, ", "), quest.Desc),
 	}
+}
+
+// goodAlignmentEvent pairs two good players for a mutual TTL bonus. Must be called with mu held.
+func (g *Game) goodAlignmentEvent(p *Player, online []*Player) string {
+	var partners []*Player
+	for _, op := range online {
+		if op != p && op.Alignment == AlignGood {
+			partners = append(partners, op)
+		}
+	}
+	if len(partners) == 0 {
+		return ""
+	}
+	partner := partners[mathrand.Intn(len(partners))]
+	pct := mathrand.Intn(8) + 5
+	for _, target := range []*Player{p, partner} {
+		change := target.TTL * int64(pct) / 100
+		if change < 1 {
+			change = 1
+		}
+		target.TTL -= change
+		if target.TTL < 1 {
+			target.TTL = 1
+		}
+	}
+	tmpl := goodEventMsgs[mathrand.Intn(len(goodEventMsgs))]
+	return fmt.Sprintf(tmpl, p.Nick, partner.Nick, pct)
+}
+
+// evilAlignmentEvent either steals an item from a good player or gets forsaken. Must be called with mu held.
+func (g *Game) evilAlignmentEvent(p *Player, online []*Player) string {
+	var goodTargets []*Player
+	for _, op := range online {
+		if op != p && op.Alignment == AlignGood {
+			goodTargets = append(goodTargets, op)
+		}
+	}
+
+	// If there's a good player to steal from, 50/50 steal vs. forsaken.
+	if len(goodTargets) > 0 && mathrand.Intn(2) == 0 {
+		target := goodTargets[mathrand.Intn(len(goodTargets))]
+		slot := g.pickNonZeroSlot(target)
+		if slot >= 0 {
+			stolen := target.Items[slot]
+			target.Items[slot] = 0
+			if stolen > p.Items[slot] {
+				p.Items[slot] = stolen
+			}
+			tmpl := evilStealMsgs[mathrand.Intn(len(evilStealMsgs))]
+			return fmt.Sprintf(tmpl, p.Nick, target.Nick, itemSlots[slot], stolen)
+		}
+	}
+
+	// Forsaken: dark patron punishes the evil player.
+	pct := mathrand.Intn(5) + 1
+	change := p.TTL * int64(pct) / 100
+	if change < 1 {
+		change = 1
+	}
+	p.TTL += change
+	tmpl := forsakenMsgs[mathrand.Intn(len(forsakenMsgs))]
+	return fmt.Sprintf(tmpl, p.Nick, pct)
 }
 
 // applyPenalty adds base * 1.14^level seconds. Must be called with mu held.

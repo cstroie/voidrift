@@ -118,6 +118,13 @@ func main() {
 			msg := game.CmdLogout(src)
 			reply(msg)
 
+		case "!align":
+			if len(fields) < 2 {
+				reply("Usage: !align <good|neutral|evil>")
+				return
+			}
+			reply(game.CmdAlign(src, fields[1]))
+
 		case "!status":
 			target := ""
 			if len(fields) >= 2 {
@@ -136,6 +143,7 @@ func main() {
 				"!register <nick> <class> <pass> — create character | " +
 				"!login <pass> — log in (stay idle to level up!) | " +
 				"!logout — go offline | " +
+				"!align <good|neutral|evil> — set alignment (costs time to change) | " +
 				"!status [nick] — show level, TTL, item total | " +
 				"!whoami — your own status | " +
 				"!top — top 5 players. " +

@@ -2,7 +2,7 @@
 
 ## High Priority
 
-- [ ] **Alignment system** — Good / Neutral / Evil per player; affects event rates,
+- [x] **Alignment system** — Good / Neutral / Evil per player; affects event rates,
       battle crit chance, and item steal eligibility. Store as `Alignment int8` (-1/0/1).
 - [ ] **Bot vs. player battles** — periodic challenge against the bot itself;
       bot item sum = 1 + highest player sum; win gives 20% TTL reduction, loss 10% penalty.
@@ -12,9 +12,9 @@
 
 ## Medium Priority
 
-- [ ] **Critical hits** — alignment-based crit chance in 1v1 battles
+- [x] **Critical hits** — alignment-based crit chance in 1v1 battles
       (Good: 1/50, Evil: 1/20); crits apply an extra TTL swing.
-- [ ] **Evil-player item theft** — daily steal attempt by evil-aligned players
+- [x] **Evil-player item theft** — daily steal attempt by evil-aligned players
       against good-aligned players (independent of battle).
 - [ ] **Guild system** — players can form guilds; guild battles and guild quests.
 - [ ] **Grid/map system** — 500×500 coordinate space; players move randomly each second;
