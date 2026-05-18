@@ -226,22 +226,17 @@ func TestEffectiveItemSum(t *testing.T) {
 	for i := range p.Items {
 		p.Items[i] = 10
 	}
-	focus := classFocusSlot("Warrior")
 	// effectiveItemSum = itemSum + Items[focus] = 100 + 10 = 110
+	// (focus slot value is 10 regardless of which slot it is)
 	want := 110
 	if got := effectiveItemSum(p); got != want {
 		t.Errorf("effectiveItemSum (single class) = %d, want %d", got, want)
 	}
 
-	// Dual-class, different slots: adds another focus bonus.
+	// Dual-class always adds a second focus bonus of 10, whether or not
+	// the two focus slots are the same.
 	p.Class2 = "Mage"
-	focus2 := classFocusSlot("Mage")
-	wantDual := 110
-	if focus != focus2 {
-		wantDual = 120 // two different focus bonuses of 10 each
-	} else {
-		wantDual = 120 // same slot: base 100 + 10 + 10
-	}
+	wantDual := 120
 	if got := effectiveItemSum(p); got != wantDual {
 		t.Errorf("effectiveItemSum (dual-class) = %d, want %d", got, wantDual)
 	}
