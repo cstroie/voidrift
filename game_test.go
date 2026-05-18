@@ -13,6 +13,7 @@ func newTestGame() *Game {
 		players: make(map[string]*Player),
 		guilds:  make(map[string]*Guild),
 		say:     func(string) {},
+		Rates:   defaultRates(),
 	}
 	g.setTopic = func(string) {}
 	return g
@@ -586,6 +587,63 @@ func TestCmdQuestNoQuest(t *testing.T) {
 	msg := g.CmdQuest()
 	if !strings.Contains(msg, "No quest") {
 		t.Errorf("expected no-quest message, got %q", msg)
+	}
+}
+
+// --- rateCheck ---
+
+func TestRateCheck(t *testing.T) {
+	// multiplier 0 or negative: never fires.
+	for i := 0; i < 100; i++ {
+		if rateCheck(86400, 0) {
+			t.Error("rateCheck with multiplier 0 should never fire")
+		}
+		if rateCheck(86400, -1) {
+			t.Error("rateCheck with negative multiplier should never fire")
+		}
+	}
+
+	// Large multiplier collapses denominator to 1: always fires.
+	for i := 0; i < 10; i++ {
+		if !rateCheck(1, 9999) {
+			t.Error("rateCheck with huge multiplier should always fire")
+		}
+	}
+
+	// Default rate (1.0) over many trials should produce roughly 1/N hits.
+	// With denominator=2 and 10000 trials we expect ~5000 hits; allow wide margin.
+	hits := 0
+	const trials = 10000
+	for i := 0; i < trials; i++ {
+		if rateCheck(2, 1.0) {
+			hits++
+		}
+	}
+	if hits < 3000 || hits > 7000 {
+		t.Errorf("rateCheck(2, 1.0) over %d trials: %d hits, want ~5000", trials, hits)
+	}
+
+	// 2× multiplier should fire roughly twice as often as 1×.
+	hits1x, hits2x := 0, 0
+	for i := 0; i < trials; i++ {
+		if rateCheck(100, 1.0) {
+			hits1x++
+		}
+		if rateCheck(100, 2.0) {
+			hits2x++
+		}
+	}
+	if hits2x < hits1x {
+		t.Errorf("2× multiplier (%d hits) should fire more than 1× (%d hits)", hits2x, hits1x)
+	}
+}
+
+// --- Rates wiring ---
+
+func TestRatesAppliedToGame(t *testing.T) {
+	g := newTestGame()
+	if g.Rates.PlayerEvents != 1.0 || g.Rates.AlignmentEvents != 1.0 || g.Rates.ServerEvents != 1.0 {
+		t.Errorf("newGame Rates = %+v, want all 1.0", g.Rates)
 	}
 }
 

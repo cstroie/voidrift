@@ -26,8 +26,12 @@ All flags:
 | `-data` | `idlerpg.json` | Player data file |
 | `-guilds` | `guilds.json` | Guild data file |
 | `-dev` | `false` | Dev mode: auto-login channel members on startup (via WHO) and speed up TTL by 5× |
+| `-nickserv` | _(none)_ | NickServ password; sends `IDENTIFY` on connect |
+| `-rate-player` | `1.0` | Per-player event multiplier (random events, bot battles) |
+| `-rate-align` | `1.0` | Alignment event multiplier (good/evil daily events) |
+| `-rate-server` | `1.0` | Server event multiplier (team battles, guild battles, quests, Hand of God) |
 
-No test suite yet. Build with `go build ./...` to verify changes compile.
+Build and test with `go build ./...` and `go test ./...`.
 
 ## Code Structure
 

@@ -27,6 +27,9 @@ All flags:
 | `-data` | `idlerpg.json` | Player data file (JSON, created automatically) |
 | `-guilds` | `guilds.json` | Guild data file (JSON, created automatically) |
 | `-dev` | `false` | Dev mode: auto-login channel members on startup and speed up TTL by 5× |
+| `-rate-player` | `1.0` | Per-player event rate multiplier — scales random events and bot-battle challenges (2.0 = twice as often) |
+| `-rate-align` | `1.0` | Alignment event rate multiplier — scales good/evil daily events |
+| `-rate-server` | `1.0` | Server event rate multiplier — scales team battles, guild battles, quests, and Hand of God |
 
 ## Player Commands
 

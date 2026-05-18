@@ -27,6 +27,9 @@ func main() {
 	guildsFile := flag.String("guilds", "guilds.json", "Guild data file")
 	dev := flag.Bool("dev", false, "Dev mode: auto-login channel members on startup and speed up TTL by 5×")
 	nickservPass := flag.String("nickserv", "", "NickServ password (sends IDENTIFY on connect)")
+	ratePlayer := flag.Float64("rate-player", 1.0, "Per-player event rate multiplier (random events, bot battles; default 1.0 = ~1/day each)")
+	rateAlign := flag.Float64("rate-align", 1.0, "Alignment event rate multiplier (good/evil daily events; default 1.0)")
+	rateServer := flag.Float64("rate-server", 1.0, "Server event rate multiplier (team battles, guild battles, quests, Hand of God; default 1.0)")
 	flag.Parse()
 
 	cfg := irc.NewConfig(*nick, "idlerpg", "IdleRPG bot")
@@ -45,6 +48,11 @@ func main() {
 
 	game := newGame(*dataFile, *guildsFile, say)
 	game.DevMode = *dev
+	game.Rates = Rates{
+		PlayerEvents:    *ratePlayer,
+		AlignmentEvents: *rateAlign,
+		ServerEvents:    *rateServer,
+	}
 	game.setTopic = func(topic string) {
 		log.Printf("TOPIC: %s", topic)
 		conn.Topic(*channel, topic)

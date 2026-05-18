@@ -255,6 +255,46 @@ type Game struct {
 	// DevMode speeds up TTL by 5× and auto-logins existing channel members on
 	// connect. Set before start() is called; never mutated under mu.
 	DevMode bool
+
+	// Rates controls how frequently various random events fire. Each field is a
+	// multiplier relative to the default rate: 1.0 = normal, 2.0 = twice as
+	// often, 0.5 = half as often. Set before start() is called; never mutated
+	// under mu.
+	Rates Rates
+}
+
+// Rates holds per-category event frequency multipliers. A value of 1.0 means
+// the default rate; higher values increase frequency proportionally.
+type Rates struct {
+	// PlayerEvents scales per-player random events and bot-battle challenges
+	// (default: ~1/day each).
+	PlayerEvents float64
+	// AlignmentEvents scales good- and evil-alignment daily events
+	// (default: good ~1/12 days, evil ~1/8 days).
+	AlignmentEvents float64
+	// ServerEvents scales team battles, guild battles, quests, and Hand of God
+	// (default rates vary; see tickServerEvents).
+	ServerEvents float64
+}
+
+// defaultRates returns a Rates with all multipliers set to 1.0.
+func defaultRates() Rates {
+	return Rates{PlayerEvents: 1.0, AlignmentEvents: 1.0, ServerEvents: 1.0}
+}
+
+// rateCheck returns true with probability (multiplier/denominator) per call.
+// It is equivalent to mathrand.Intn(denominator)==0 when multiplier==1.0.
+// The effective denominator is clamped to a minimum of 1 so the result is
+// always valid regardless of how large the multiplier is.
+func rateCheck(denominator int, multiplier float64) bool {
+	if multiplier <= 0 {
+		return false
+	}
+	n := int(float64(denominator) / multiplier)
+	if n < 1 {
+		n = 1
+	}
+	return mathrand.Intn(n) == 0
 }
 
 // newGame creates a Game, loads persisted player and guild data, and wires the
@@ -266,6 +306,7 @@ func newGame(dataFile, guildsFile string, say func(string)) *Game {
 		dataFile:   dataFile,
 		guildsFile: guildsFile,
 		say:        say,
+		Rates:      defaultRates(),
 	}
 	g.load()
 	g.loadGuilds()
@@ -779,11 +820,11 @@ func (g *Game) tickPlayers(online []*Player) (levelUps []*Player, msgs []string)
 			continue
 		}
 		// ~1/day: random individual event (calamity, godsend, item change, find item).
-		if mathrand.Intn(86400) == 0 {
+		if rateCheck(86400, g.Rates.PlayerEvents) {
 			msgs = append(msgs, g.randomEvent(p))
 		}
 		// ~1/day: 1v1 challenge against the bot.
-		if mathrand.Intn(86400) == 0 {
+		if rateCheck(86400, g.Rates.PlayerEvents) {
 			msgs = append(msgs, g.botBattle(p))
 		}
 		msgs = append(msgs, g.tickAlignmentEvent(p, online)...)
@@ -798,14 +839,14 @@ func (g *Game) tickAlignmentEvent(p *Player, online []*Player) []string {
 	switch p.Alignment {
 	case AlignGood:
 		// ~once per 12 days: pair with another good player for a mutual TTL bonus.
-		if mathrand.Intn(86400*12) == 0 {
+		if rateCheck(86400*12, g.Rates.AlignmentEvents) {
 			if m := g.goodAlignmentEvent(p, online); m != "" {
 				return []string{m}
 			}
 		}
 	case AlignEvil:
 		// ~once per 8 days: steal from a good player or get forsaken.
-		if mathrand.Intn(86400*8) == 0 {
+		if rateCheck(86400*8, g.Rates.AlignmentEvents) {
 			return []string{g.evilAlignmentEvent(p, online)}
 		}
 	}
@@ -874,16 +915,16 @@ func (g *Game) tickQuestProgress(online []*Player) []string {
 // start (~1/day), and quest timeout resolution. Must be called with mu held.
 func (g *Game) tickServerEvents(online []*Player) []string {
 	var msgs []string
-	if len(online) > 0 && mathrand.Intn(86400*20) == 0 {
+	if len(online) > 0 && rateCheck(86400*20, g.Rates.ServerEvents) {
 		msgs = append(msgs, g.handOfGod(online[mathrand.Intn(len(online))]))
 	}
-	if len(online) >= 6 && mathrand.Intn(86400/4) == 0 {
+	if len(online) >= 6 && rateCheck(86400/4, g.Rates.ServerEvents) {
 		msgs = append(msgs, g.teamBattle(online)...)
 	}
-	if mathrand.Intn(86400) == 0 {
+	if rateCheck(86400, g.Rates.ServerEvents) {
 		msgs = append(msgs, g.guildBattle()...)
 	}
-	if g.quest == nil && mathrand.Intn(86400) == 0 {
+	if g.quest == nil && rateCheck(86400, g.Rates.ServerEvents) {
 		msgs = append(msgs, g.tryStartQuest(online)...)
 	}
 	if g.quest != nil && time.Now().After(g.quest.EndsAt) {
