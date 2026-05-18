@@ -1,5 +1,9 @@
 # GoIdle — IdleRPG IRC Bot
 
+[![Go](https://img.shields.io/badge/go-1.21+-00ADD8?logo=go)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cstroie/idlerpg)](https://goreportcard.com/report/github.com/cstroie/idlerpg)
+
 A standalone IRC bot implementing the classic [IdleRPG](https://idlerpg.net/) game, written in Go.
 
 Players register a character, pick a class and alignment, and gain levels simply by idling in the channel. Talking, changing nick, parting, quitting, or getting kicked adds penalty time. Characters battle each other on level-up, find items, dual-class, join guilds, go on quests, and roam a 500×500 map — all without lifting a finger.
