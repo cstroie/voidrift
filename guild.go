@@ -106,9 +106,12 @@ func (guild *Guild) removeInvite(nick string) {
 // unique. Founding costs a p100 penalty. The guild name is stored as provided
 // (after TrimSpace) but looked up case-insensitively with whitespace collapsed.
 func (g *Game) CmdGCreate(src, name string) string {
-	name = strings.TrimSpace(name)
+	name = sanitize(name)
 	if name == "" || len(name) > 32 {
 		return "Usage: !gcreate <name> (max 32 characters)"
+	}
+	if !isValidName(name) {
+		return "Guild name may only contain letters, digits, spaces, hyphens, apostrophes, and dots."
 	}
 	// Normalise: lowercase + collapse internal whitespace. This key is used
 	// for all guild map lookups throughout the codebase.
@@ -307,20 +310,27 @@ func (g *Game) CmdGKick(src, targetNick string) string {
 		g.mu.Unlock()
 		return "Only the guild leader can kick members."
 	}
-	tKey := strings.ToLower(targetNick)
+	tKey := strings.ToLower(strings.TrimSpace(targetNick))
 	if tKey == leaderKey {
 		g.mu.Unlock()
 		return "You cannot kick yourself. Use !gleave to leave."
 	}
 	if !guild.hasMember(tKey) {
 		g.mu.Unlock()
-		return fmt.Sprintf("%s is not a member of %q.", targetNick, guild.Name)
+		return "That player is not a member of your guild."
+	}
+	// Use the stored nick from the player record, not the raw input, to avoid
+	// reflecting user-controlled strings back into channel messages.
+	tp := g.players[tKey]
+	storedNick := tKey
+	if tp != nil {
+		storedNick = tp.Nick
 	}
 	guild.removeMember(tKey)
 	guildName := guild.Name
 	g.mu.Unlock()
 	g.saveGuilds()
-	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+" has been purged from "+iB+"[%s]"+iB+".", targetNick, guildName)
+	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+" has been purged from "+iB+"[%s]"+iB+".", storedNick, guildName)
 }
 
 // CmdGInfo shows a summary of the requested guild: leader, member list with

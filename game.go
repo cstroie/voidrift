@@ -31,7 +31,60 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
+
+// ircControlChars is the set of IRC formatting/control bytes that must never
+// appear in user-supplied names or be echoed back into channel messages.
+var ircControlReplacer = strings.NewReplacer(
+	"\x02", "", // bold
+	"\x03", "", // colour
+	"\x04", "", // hex colour (some clients)
+	"\x0F", "", // reset
+	"\x16", "", // reverse
+	"\x1D", "", // italic
+	"\x1E", "", // strikethrough
+	"\x1F", "", // underline
+	"\r", "", "\n", "", "\x00", "",
+)
+
+// sanitize strips IRC control codes and ASCII control characters from s and
+// collapses runs of whitespace to a single space. Use for any string that will
+// be echoed back into a channel message.
+func sanitize(s string) string {
+	s = ircControlReplacer.Replace(s)
+	// Strip remaining ASCII control chars (< 0x20, DEL).
+	s = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
+	return strings.Join(strings.Fields(s), " ")
+}
+
+// isValidName reports whether s is acceptable as a class or guild name:
+// Unicode letters and marks, digits, spaces, hyphens, apostrophes, and dots.
+// This prevents IRC code injection while allowing names like "Void-Touched",
+// "D'Ark", or "St. Elmo".
+func isValidName(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r) {
+			continue
+		}
+		switch r {
+		case ' ', '-', '\'', '.':
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+const maxPassLen = 256 // bytes; prevents DoS via giant SHA-256 preimage
 
 // itemSlots names the ten equipment slots in display order. The slice index is
 // used everywhere items are stored (Player.Items, Player.ItemNames).
@@ -667,8 +720,15 @@ func (g *Game) OnPrivmsg(src, text string) {
 // registration result is announced publicly; the password is never echoed.
 func (g *Game) CmdRegister(src, class, pass string) string {
 	nick := extractNick(src)
+	class = sanitize(class)
 	if len(class) == 0 || len(class) > 50 {
 		return "Class must be 1–50 characters."
+	}
+	if !isValidName(class) {
+		return "Class name may only contain letters, digits, spaces, hyphens, apostrophes, and dots."
+	}
+	if len(pass) == 0 || len(pass) > maxPassLen {
+		return fmt.Sprintf("Password must be 1–%d characters.", maxPassLen)
 	}
 	key := strings.ToLower(nick)
 	salt := newSalt()
@@ -706,6 +766,9 @@ func (g *Game) CmdRegister(src, class, pass string) string {
 // to the channel.
 func (g *Game) CmdLogin(src, pass string) string {
 	nick := extractNick(src)
+	if len(pass) == 0 || len(pass) > maxPassLen {
+		return "Invalid password."
+	}
 	key := strings.ToLower(nick)
 	g.mu.Lock()
 	p, ok := g.players[key]
@@ -778,9 +841,15 @@ func (g *Game) CmdAlign(src, align string) string {
 // CmdDualClass lets a player at level 12+ permanently choose a second class.
 // The second class adds an additional focus-slot bonus in all battle rolls.
 func (g *Game) CmdDualClass(src, class string) string {
-	class = strings.TrimSpace(class)
+	class = sanitize(class)
 	if class == "" {
 		return "Usage: !dualclass <class>"
+	}
+	if len(class) > 50 {
+		return "Class name must be 50 characters or fewer."
+	}
+	if !isValidName(class) {
+		return "Class name may only contain letters, digits, spaces, hyphens, apostrophes, and dots."
 	}
 	g.mu.Lock()
 	p := g.findByAddr(src)
