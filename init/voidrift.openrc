@@ -3,16 +3,21 @@
 name="voidrift"
 description="Void Drift IRC idle RPG bot"
 
-command="/usr/local/bin/voidrift"
-command_args="-server irc.libera.chat:6667 -nick VoidKeeper -channel \"#voidrift\" -data /var/lib/voidrift/voidrift.json -guilds /var/lib/voidrift/guilds.json"
-command_user="voidrift:voidrift"
+# The chroot root is the data directory; the static binary lives inside it.
+CHROOT="/var/lib/voidrift"
+
+command="/usr/sbin/chroot"
+command_args="--userspec=voidrift:voidrift ${CHROOT} /voidrift \
+    -server irc.libera.chat:6667 \
+    -nick VoidKeeper \
+    -channel \"#voidrift\" \
+    -data /voidrift.json \
+    -guilds /guilds.json"
 command_background=true
 
 pidfile="/run/${RC_SVCNAME}.pid"
 output_log="/var/log/voidrift/voidrift.log"
 error_log="/var/log/voidrift/voidrift.log"
-
-directory="/var/lib/voidrift"
 
 depend() {
     need net
@@ -20,6 +25,30 @@ depend() {
 }
 
 start_pre() {
-    checkpath -d -o voidrift:voidrift -m 0750 /var/lib/voidrift
+    # Data directory (chroot root) — owned by root so voidrift cannot escape
+    # by replacing the binary; the process runs as voidrift inside.
+    checkpath -d -o root:root   -m 0755 "${CHROOT}"
     checkpath -d -o voidrift:voidrift -m 0750 /var/log/voidrift
+
+    # Bind-mount DNS resolution files read-only into the chroot so the
+    # pure-Go resolver can reach the IRC server by hostname.
+    for f in /etc/resolv.conf /etc/nsswitch.conf; do
+        if [ ! -f "${CHROOT}${f}" ]; then
+            touch "${CHROOT}${f}"
+        fi
+        mount --bind -o ro "${f}" "${CHROOT}${f}" 2>/dev/null || true
+    done
+
+    # TLS certificates — only needed when running with -ssl.
+    if [ ! -d "${CHROOT}/etc/ssl/certs" ]; then
+        mkdir -p "${CHROOT}/etc/ssl/certs"
+    fi
+    mount --bind -o ro /etc/ssl/certs "${CHROOT}/etc/ssl/certs" 2>/dev/null || true
+}
+
+stop_post() {
+    # Unmount the bind-mounts after the process exits.
+    umount "${CHROOT}/etc/ssl/certs"   2>/dev/null || true
+    umount "${CHROOT}/etc/nsswitch.conf" 2>/dev/null || true
+    umount "${CHROOT}/etc/resolv.conf" 2>/dev/null || true
 }

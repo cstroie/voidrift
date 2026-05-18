@@ -8,24 +8,37 @@ Wants=network-online.target
 Type=simple
 User=voidrift
 Group=voidrift
-WorkingDirectory=/var/lib/voidrift
-ExecStart=/usr/local/bin/voidrift \
+
+# Chroot the service into /var/lib/voidrift. The binary must be installed
+# there as ./voidrift (relative to the chroot root). All paths below are
+# relative to the chroot unless prefixed by BindReadOnlyPaths.
+RootDirectory=/var/lib/voidrift
+WorkingDirectory=/
+
+ExecStart=/voidrift \
     -server irc.libera.chat:6667 \
     -nick VoidKeeper \
     -channel "#voidrift" \
-    -data /var/lib/voidrift/voidrift.json \
-    -guilds /var/lib/voidrift/guilds.json
+    -data /voidrift.json \
+    -guilds /guilds.json
 
 Restart=on-failure
 RestartSec=30s
 
-# Hardening
+# Bind in the minimum read-only host paths needed for network operation.
+# DNS: /etc/resolv.conf + /etc/nsswitch.conf (Go's pure-Go resolver only
+# needs resolv.conf, but nsswitch.conf silences some libc warnings).
+# TLS:  /etc/ssl/certs — only needed when running with -ssl.
+BindReadOnlyPaths=/etc/resolv.conf /etc/nsswitch.conf /etc/ssl/certs
+
+# Hardening — most ProtectSystem/ProtectHome directives are redundant once
+# RootDirectory is set, but kept for defence in depth.
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/var/lib/voidrift
 CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
 
 [Install]
 WantedBy=multi-user.target

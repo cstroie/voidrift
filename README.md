@@ -243,15 +243,28 @@ The topic updates on player join/part, every level-up, and after significant eve
 
 ## Running as a Service
 
-Init files are in the `init/` directory.
+Init files are in the `init/` directory. Both run the bot inside a chroot
+(`/var/lib/voidrift`), so the binary must be built statically — `make build`
+sets `CGO_ENABLED=0` automatically.
 
 ### systemd (Linux)
 
+The unit uses `RootDirectory=/var/lib/voidrift`. The binary and data files
+live directly in that directory; `/etc/resolv.conf` and `/etc/ssl/certs` are
+bind-mounted read-only by systemd so DNS and TLS work without putting anything
+else in the chroot.
+
 ```bash
-# Install binary and create a dedicated user
-install -Dm755 voidrift /usr/local/bin/voidrift
-useradd -r -d /var/lib/voidrift -s /sbin/nologin voidrift
-install -dm750 -o voidrift -g voidrift /var/lib/voidrift
+# Build a static binary
+make build
+
+# Create a dedicated user and the chroot root (owned by root)
+useradd -r -s /sbin/nologin voidrift
+install -dm755 /var/lib/voidrift
+chown root:root /var/lib/voidrift
+
+# Install the binary into the chroot root
+install -m755 voidrift /var/lib/voidrift/voidrift
 
 # Install and enable the service
 install -Dm644 init/voidrift.service /etc/systemd/system/voidrift.service
@@ -259,14 +272,26 @@ systemctl daemon-reload
 systemctl enable --now voidrift
 ```
 
-Pass additional flags (e.g. `-nickserv`) by editing `ExecStart` in the unit file, or drop an override in `/etc/systemd/system/voidrift.service.d/override.conf`.
+Pass additional flags (e.g. `-nickserv`) by editing `ExecStart` in the unit
+file, or drop an override in `/etc/systemd/system/voidrift.service.d/override.conf`.
 
 ### OpenRC (Alpine Linux)
 
+The init script runs `chroot --userspec=voidrift:voidrift /var/lib/voidrift`
+and bind-mounts `/etc/resolv.conf`, `/etc/nsswitch.conf`, and `/etc/ssl/certs`
+read-only into the chroot in `start_pre`, unmounting them on stop.
+
 ```bash
-# Install binary and create a dedicated user
-install -Dm755 voidrift /usr/local/bin/voidrift
-adduser -S -D -h /var/lib/voidrift -s /sbin/nologin voidrift
+# Build a static binary
+make build
+
+# Create a dedicated user and the chroot root (owned by root)
+adduser -S -D -s /sbin/nologin voidrift
+install -dm755 /var/lib/voidrift
+chown root:root /var/lib/voidrift
+
+# Install the binary into the chroot root
+install -m755 voidrift /var/lib/voidrift/voidrift
 
 # Install and enable the service
 install -Dm755 init/voidrift.openrc /etc/init.d/voidrift
