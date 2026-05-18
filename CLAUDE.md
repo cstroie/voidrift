@@ -41,7 +41,7 @@ Build and test with `go build ./...` and `go test ./...`.
 | `game.go` | Core game logic: players, tick loop, events, battles, quests, grid, persistence |
 | `guild.go` | Guild system: data types, commands, guild battles, persistence |
 | `items.go` | Unique/legendary item system: rarity tiers, name generation, `!items` command |
-| `go.mod` / `go.sum` | Module: `github.com/cstroie/idlerpg`, requires `fluffle/goirc` |
+| `go.mod` / `go.sum` | Module: `github.com/cstroie/voidrift`, requires `fluffle/goirc` |
 
 ## Player Commands
 

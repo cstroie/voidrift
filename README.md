@@ -2,7 +2,7 @@
 
 [![Go](https://img.shields.io/badge/go-1.21+-00ADD8?logo=go)](https://go.dev/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cstroie/idlerpg)](https://goreportcard.com/report/github.com/cstroie/idlerpg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cstroie/voidrift)](https://goreportcard.com/report/github.com/cstroie/voidrift)
 
 A standalone IRC bot implementing the classic [IdleRPG](https://idlerpg.net/) game, written in Go — with a cosmic horror / dying-world sci-fi skin.
 
@@ -13,7 +13,7 @@ The old gods are gone. What remains are Entities: the Pale Architects, the Drift
 **Prerequisites**: Go 1.21 or later.
 
 ```bash
-git clone https://github.com/cstroie/idlerpg.git
+git clone https://github.com/cstroie/voidrift.git
 cd idlerpg
 make build
 ./idlerpg -server irc.libera.chat:6667 -nick VoidKeeper -channel "#voidrift"
@@ -248,6 +248,10 @@ Bug reports and pull requests are welcome. Please:
 1. Fork the repo and create a feature branch.
 2. Run `make test` before submitting — all tests must pass.
 3. Keep each PR focused; one change per PR.
+
+## Maintainer
+
+Costin Stroie — <costinstroie@eridu.eu.org>
 
 ## License
 

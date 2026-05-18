@@ -1,4 +1,4 @@
-module github.com/cstroie/idlerpg
+module github.com/cstroie/voidrift
 
 go 1.21
 
