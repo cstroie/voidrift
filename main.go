@@ -9,11 +9,42 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
 	irc "github.com/fluffle/goirc/client"
 )
+
+// envFlags maps each VOIDRIFT_* environment variable to the corresponding
+// flag name. applyEnv must be called before flag.Parse() so that explicit
+// command-line flags can still override env values.
+var envFlags = map[string]string{
+	"VOIDRIFT_SERVER":      "server",
+	"VOIDRIFT_NICK":        "nick",
+	"VOIDRIFT_PASSWORD":    "password",
+	"VOIDRIFT_SSL":         "ssl",
+	"VOIDRIFT_CHANNEL":     "channel",
+	"VOIDRIFT_DATA":        "data",
+	"VOIDRIFT_GUILDS":      "guilds",
+	"VOIDRIFT_DEV":         "dev",
+	"VOIDRIFT_NICKSERV":    "nickserv",
+	"VOIDRIFT_RATE_PLAYER": "rate-player",
+	"VOIDRIFT_RATE_ALIGN":  "rate-align",
+	"VOIDRIFT_RATE_SERVER": "rate-server",
+}
+
+// applyEnv sets flag defaults from environment variables. Command-line flags
+// take precedence because flag.Parse() runs after this function.
+func applyEnv() {
+	for env, flagName := range envFlags {
+		if val := os.Getenv(env); val != "" {
+			if err := flag.Set(flagName, val); err != nil {
+				log.Fatalf("invalid value for %s: %v", env, err)
+			}
+		}
+	}
+}
 
 // main parses flags, constructs the IRC client and Game, registers all event
 // handlers, then runs the reconnect loop forever.
@@ -30,6 +61,7 @@ func main() {
 	ratePlayer := flag.Float64("rate-player", 1.0, "Per-player event rate multiplier (random events, bot battles; default 1.0 = ~1/day each)")
 	rateAlign := flag.Float64("rate-align", 1.0, "Alignment event rate multiplier (good/evil daily events; default 1.0)")
 	rateServer := flag.Float64("rate-server", 1.0, "Server event rate multiplier (team battles, guild battles, quests, Hand of God; default 1.0)")
+	applyEnv()
 	flag.Parse()
 
 	cfg := irc.NewConfig(*nick, "voidrift", "Void Drift bot")
@@ -40,9 +72,9 @@ func main() {
 	cfg.NewNick = func(n string) string { return n + "_" }
 	conn := irc.Client(cfg)
 
-	// say sends a message to the game channel and logs it for debugging.
+	// say sends a message to the game channel and logs a plain-text version.
 	say := func(msg string) {
-		log.Printf(">> %s", msg)
+		log.Printf(">> %s", ircControlReplacer.Replace(msg))
 		conn.Privmsg(*channel, msg)
 	}
 
@@ -54,7 +86,7 @@ func main() {
 		ServerEvents:    *rateServer,
 	}
 	game.setTopic = func(topic string) {
-		log.Printf("TOPIC: %s", topic)
+		log.Printf("TOPIC: %s", ircControlReplacer.Replace(topic))
 		conn.Topic(*channel, topic)
 	}
 
