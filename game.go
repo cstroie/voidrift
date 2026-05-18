@@ -1358,7 +1358,7 @@ func (g *Game) tickServerEvents(online []*Player) []string {
 	if rateCheck(86400, g.Rates.ServerEvents) {
 		msgs = append(msgs, g.guildBattle()...)
 	}
-	if g.quest == nil && rateCheck(86400, g.Rates.ServerEvents) {
+	if g.quest == nil && rateCheck(86400/4, g.Rates.ServerEvents) {
 		msgs = append(msgs, g.tryStartQuest(online)...)
 	}
 	if g.quest != nil && time.Now().After(g.quest.EndsAt) {
