@@ -258,63 +258,46 @@ The topic updates on player join/part, every level-up, and after significant eve
 
 ## Running as a Service
 
-Init files are in the `init/` directory. Both run the bot inside a chroot
-(`/var/lib/voidrift`), so the binary must be built statically — `make build`
-sets `CGO_ENABLED=0` automatically.
-
-### systemd (Linux)
-
-The unit uses `RootDirectory=/var/lib/voidrift`. The binary and data files
-live directly in that directory; `/etc/resolv.conf` and `/etc/ssl/certs` are
-bind-mounted read-only by systemd so DNS and TLS work without putting anything
-else in the chroot.
+The Makefile handles everything automatically:
 
 ```bash
-# Build a static binary
-make build
-
-# Create a dedicated user and the chroot root (owned by root)
-useradd -r -s /sbin/nologin voidrift
-install -dm755 /var/lib/voidrift
-chown root:root /var/lib/voidrift
-
-# Install the binary into the chroot root
-install -m755 voidrift /var/lib/voidrift/voidrift
-
-# Install and enable the service
-install -Dm644 init/voidrift.service /etc/systemd/system/voidrift.service
-systemctl daemon-reload
-systemctl enable --now voidrift
+sudo make install    # build static binary, create user, install init file
+sudo make uninstall  # stop service, remove init file and binary
 ```
 
-Pass additional flags (e.g. `-nickserv`) by editing `ExecStart` in the unit
-file, or drop an override in `/etc/systemd/system/voidrift.service.d/override.conf`.
-
-### OpenRC (Alpine Linux)
-
-The init script runs `chroot --userspec=voidrift:voidrift /var/lib/voidrift`
-and bind-mounts `/etc/resolv.conf`, `/etc/nsswitch.conf`, and `/etc/ssl/certs`
-read-only into the chroot in `start_pre`, unmounting them on stop.
+`make install` detects the init system automatically (Alpine Linux → OpenRC,
+anything with `/run/systemd/system` → systemd) and does the right thing.
+After installing, configure the bot by copying the env-file template:
 
 ```bash
-# Build a static binary
-make build
+cp /etc/voidrift/voidrift.env.example /etc/voidrift/voidrift.env
+chmod 600 /etc/voidrift/voidrift.env
+$EDITOR /etc/voidrift/voidrift.env   # set VOIDRIFT_NICKSERV, etc.
+```
 
-# Create a dedicated user and the chroot root (owned by root)
-adduser -S -D -s /sbin/nologin voidrift
-install -dm755 /var/lib/voidrift
-chown root:root /var/lib/voidrift
+Then start the service:
 
-# Install the binary into the chroot root
-install -m755 voidrift /var/lib/voidrift/voidrift
+```bash
+# systemd
+systemctl start voidrift
 
-# Install and enable the service
-install -Dm755 init/voidrift.openrc /etc/init.d/voidrift
-rc-update add voidrift default
+# OpenRC
 rc-service voidrift start
 ```
 
-Extra flags go in `command_args` inside `/etc/init.d/voidrift`.
+`make uninstall` stops and disables the service and removes the binary, but
+**preserves** data (`/var/lib/voidrift/*.json`) and config (`/etc/voidrift/`).
+
+### Manual installation
+
+If you prefer to install without `make`, init files are in the `init/`
+directory. Both run the bot inside a chroot (`/var/lib/voidrift`) with the
+binary installed there as `/var/lib/voidrift/voidrift`. The binary must be
+statically linked — `make build-static` or `make build` both do this.
+
+DNS and TLS are handled via bind-mounts: systemd uses `BindReadOnlyPaths`;
+the OpenRC script bind-mounts `/etc/resolv.conf` and `/etc/ssl/certs` in
+`start_pre` and unmounts them on stop.
 
 ## Contributing
 
