@@ -32,16 +32,21 @@ start_pre() {
         set +a
     fi
 
-    # Create the voidrift user if it does not exist yet.
-    if ! id -u voidrift >/dev/null 2>&1; then
-        adduser -S -D -H -s /sbin/nologin voidrift
+    # Create the voidrift system user if it does not exist yet.
+    # Use -h /dev/null (BusyBox adduser does not support -H).
+    if ! id voidrift >/dev/null 2>&1; then
+        adduser -S -D -h /dev/null -s /sbin/nologin voidrift \
+            || { eerror "Failed to create voidrift user"; return 1; }
     fi
 
     # Chroot root — owned by root so the voidrift user cannot replace the binary.
     checkpath -d -o root:root -m 0755 "${CHROOT}"
 
-    # Log directory — must exist before start-stop-daemon opens the log file.
-    checkpath -d -o voidrift:voidrift -m 0750 /var/log/voidrift
+    # Log directory — use mkdir/chown directly so it does not depend on
+    # checkpath's user lookup (which can fail if nscd is not running).
+    mkdir -p /var/log/voidrift
+    chown voidrift:voidrift /var/log/voidrift
+    chmod 0750 /var/log/voidrift
 
     # Create the /etc subtree inside the chroot before bind-mounting into it.
     mkdir -p "${CHROOT}/etc/ssl/certs"
@@ -49,7 +54,6 @@ start_pre() {
     # Bind-mount DNS resolution files read-only into the chroot so the
     # pure-Go resolver can reach the IRC server by hostname.
     for f in /etc/resolv.conf /etc/nsswitch.conf; do
-        # Ensure a regular file exists as the mount point.
         if [ ! -f "${CHROOT}${f}" ]; then
             touch "${CHROOT}${f}"
         fi
