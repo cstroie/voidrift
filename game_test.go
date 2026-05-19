@@ -247,7 +247,7 @@ func TestEffectiveItemSum(t *testing.T) {
 
 func TestCmdRegisterBasic(t *testing.T) {
 	g := newTestGame()
-	msg := g.CmdRegister("Alice!a@h", "Alice", "pass123", "Warrior")
+	msg := g.CmdRegister("Alice!a@h", "Alice", "pass123", "Warrior", "n")
 	if !strings.Contains(msg, "Alice") || !strings.Contains(msg, "void") {
 		t.Errorf("unexpected register message: %q", msg)
 	}
@@ -258,7 +258,7 @@ func TestCmdRegisterBasic(t *testing.T) {
 
 func TestCmdRegisterUsesIRCNick(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	p, ok := g.players["alice"]
 	if !ok {
 		t.Fatal("player not found")
@@ -270,8 +270,8 @@ func TestCmdRegisterUsesIRCNick(t *testing.T) {
 
 func TestCmdRegisterDuplicate(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
-	msg := g.CmdRegister("Alice!a@h", "Alice", "pass2", "Mage")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
+	msg := g.CmdRegister("Alice!a@h", "Alice", "pass2", "Mage", "n")
 	if !strings.Contains(msg, "already registered") {
 		t.Errorf("expected duplicate-nick error, got %q", msg)
 	}
@@ -279,11 +279,11 @@ func TestCmdRegisterDuplicate(t *testing.T) {
 
 func TestCmdRegisterValidation(t *testing.T) {
 	g := newTestGame()
-	if msg := g.CmdRegister("A!a@h", "Anya", "p", ""); !strings.Contains(msg, "Class") {
+	if msg := g.CmdRegister("A!a@h", "Anya", "p", "", "n"); !strings.Contains(msg, "Class") {
 		t.Errorf("empty class: %q", msg)
 	}
 	longClass := strings.Repeat("x", 51)
-	if msg := g.CmdRegister("A!a@h", "charname", "p", longClass); !strings.Contains(msg, "Class") {
+	if msg := g.CmdRegister("A!a@h", "charname", "p", longClass, "n"); !strings.Contains(msg, "Class") {
 		t.Errorf("long class: %q", msg)
 	}
 }
@@ -292,7 +292,7 @@ func TestCmdRegisterValidation(t *testing.T) {
 
 func TestCmdLoginSuccess(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "secret", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "secret", "Warrior", "n")
 	msg := g.CmdLogin("Alice!a@h", "secret")
 	if !strings.Contains(msg, "logged in") {
 		t.Errorf("expected logged-in confirmation, got %q", msg)
@@ -304,7 +304,7 @@ func TestCmdLoginSuccess(t *testing.T) {
 
 func TestCmdLoginWrongPassword(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "secret", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "secret", "Warrior", "n")
 	msg := g.CmdLogin("Alice!a@h", "wrong")
 	if !strings.Contains(msg, "Wrong password") {
 		t.Errorf("expected wrong-password error, got %q", msg)
@@ -323,7 +323,7 @@ func TestCmdLoginUnknownNick(t *testing.T) {
 
 func TestCmdLogout(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	msg := g.CmdLogout("Alice!a@h")
 	if !strings.Contains(msg, "disconnected") {
@@ -346,7 +346,7 @@ func TestCmdLogoutNotLoggedIn(t *testing.T) {
 
 func TestCmdAlign(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	p := g.players["alice"]
 	origTTL := p.TTL
@@ -386,7 +386,7 @@ func TestCmdAlignInvalid(t *testing.T) {
 
 func TestCmdDualClass(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	p := g.players["alice"]
 
@@ -418,7 +418,7 @@ func TestCmdDualClass(t *testing.T) {
 
 func TestCmdStatus(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 
 	msg := g.CmdStatus("Alice!a@h", "")
@@ -477,7 +477,7 @@ func TestCmdOnline(t *testing.T) {
 		t.Errorf("empty online: %q", msg)
 	}
 
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	msg := g.CmdOnline()
 	if !strings.Contains(msg, "Alice") {
@@ -492,7 +492,7 @@ func TestCmdOnline(t *testing.T) {
 
 func TestOnJoin(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.OnJoin("Alice!a@host")
 	if !g.players["alice"].Online {
 		t.Error("player should be online after OnJoin")
@@ -501,7 +501,7 @@ func TestOnJoin(t *testing.T) {
 
 func TestOnPart(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	p := g.players["alice"]
 	ttlBefore := p.TTL
@@ -517,7 +517,7 @@ func TestOnPart(t *testing.T) {
 
 func TestOnQuit(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	p := g.players["alice"]
 	ttlBefore := p.TTL
@@ -533,7 +533,7 @@ func TestOnQuit(t *testing.T) {
 
 func TestOnKick(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	p := g.players["alice"]
 	ttlBefore := p.TTL
@@ -549,7 +549,7 @@ func TestOnKick(t *testing.T) {
 
 func TestOnNick(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	p := g.players["alice"]
 	ttlBefore := p.TTL
@@ -573,7 +573,7 @@ func TestOnNick(t *testing.T) {
 
 func TestOnPrivmsg(t *testing.T) {
 	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior")
+	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
 	g.CmdLogin("Alice!a@h", "pass")
 	p := g.players["alice"]
 	ttlBefore := p.TTL

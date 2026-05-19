@@ -276,6 +276,12 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 			return
 		}
 		reply(g.CmdPasswd(src, fields[1], fields[2]))
+	case "!gender":
+		if len(fields) < 2 {
+			reply("Usage: !gender <m|f|n>  (m=he/him, f=she/her, n=they/them) — costs p50")
+			return
+		}
+		reply(g.CmdGender(src, fields[1]))
 	case "!dualclass":
 		dispatchDualClass(src, fields, g, reply)
 	case "!align":
@@ -304,24 +310,38 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 // helpText is the single-line command reference sent in response to !help.
 const helpText = "Void Drift commands: " +
 	"!register <name> <pass> <class> | " +
-	"!login <pass> | !logout | !passwd <oldpass> <newpass> | " +
+	"!login <pass> | !logout | !passwd <oldpass> <newpass> | !gender <m|f|n> | " +
 	"!dualclass <class> (level 12+, permanent) | " +
 	"!align <good|neutral|evil> | " +
 	"!status [nick] | !whoami | !top | !online | !quest | !items [nick] | !pos [nick] | " +
 	"!gcreate <name> | !ginvite <nick> | !gaccept | !gdecline | " +
 	"!gleave | !gkick <nick> | !ginfo [name] | !gtop"
 
-// dispatchRegister handles !register <name> <pass> <class…>.
+// dispatchRegister handles !register <name> <pass> <class…> [m|f|n].
 // name and pass are single tokens; class may span multiple words.
+// The optional last token sets gender (m/f/n); defaults to n (they/them).
 func dispatchRegister(src string, fields []string, g *Game, say, reply func(string)) {
 	if len(fields) < 4 {
-		reply("Usage: !register <name> <pass> <class>")
+		reply("Usage: !register <name> <pass> <class> [m|f|n]")
 		return
 	}
 	name := fields[1]
 	pass := fields[2]
-	class := strings.Join(fields[3:], " ")
-	say(g.CmdRegister(src, name, pass, class))
+	rest := fields[3:]
+	gender := "n"
+	if len(rest) > 0 {
+		last := rest[len(rest)-1]
+		if last == "m" || last == "f" || last == "n" {
+			gender = last
+			rest = rest[:len(rest)-1]
+		}
+	}
+	if len(rest) == 0 {
+		reply("Usage: !register <name> <pass> <class> [m|f|n]")
+		return
+	}
+	class := strings.Join(rest, " ")
+	say(g.CmdRegister(src, name, pass, class, gender))
 }
 
 // dispatchLogin handles !login <pass>, replying privately so the outcome

@@ -672,12 +672,85 @@ type Player struct {
 	// Legendary items. An empty string means the slot holds a plain item.
 	ItemNames [10]string
 
+	// Gender controls pronoun substitution in player-specific messages.
+	// "m" = he/him/his, "f" = she/her/hers, anything else = they/them/their.
+	Gender string
+
 	Online bool   // true while the player is connected and logged in
 	Addr   string // full nick!user@host mask used to identify the player on IRC
 
 	// X, Y are the player's current position on the toroidal grid. They are
 	// randomised on each login and are not persisted (position resets on reconnect).
 	X, Y int
+}
+
+// they/their/them/themselves return the subject, possessive, object, and
+// reflexive pronouns for the player based on their gender setting.
+func (p *Player) they() string {
+	switch p.Gender {
+	case "m":
+		return "he"
+	case "f":
+		return "she"
+	default:
+		return "they"
+	}
+}
+func (p *Player) their() string {
+	switch p.Gender {
+	case "m":
+		return "his"
+	case "f":
+		return "her"
+	default:
+		return "their"
+	}
+}
+func (p *Player) them() string {
+	switch p.Gender {
+	case "m":
+		return "him"
+	case "f":
+		return "her"
+	default:
+		return "them"
+	}
+}
+func (p *Player) themselves() string {
+	switch p.Gender {
+	case "m":
+		return "himself"
+	case "f":
+		return "herself"
+	default:
+		return "themselves"
+	}
+}
+func (p *Player) they_() string { // capitalised
+	switch p.Gender {
+	case "m":
+		return "He"
+	case "f":
+		return "She"
+	default:
+		return "They"
+	}
+}
+
+// genderize replaces neutral they/their/them/themselves tokens in msg with the
+// player's actual pronouns. Applied to single-player event messages after
+// formatting so templates don't need per-gender variants.
+func genderize(msg string, p *Player) string {
+	if p.Gender == "" {
+		return msg // already neutral
+	}
+	msg = strings.ReplaceAll(msg, "themselves", p.themselves())
+	msg = strings.ReplaceAll(msg, "They", p.they_())
+	msg = strings.ReplaceAll(msg, "their", p.their())
+	msg = strings.ReplaceAll(msg, "Their", strings.Title(p.their()))
+	msg = strings.ReplaceAll(msg, "them", p.them())
+	msg = strings.ReplaceAll(msg, "they", p.they())
+	return msg
 }
 
 // itemSum returns the total of all item slot levels, used as the base value
@@ -931,8 +1004,8 @@ func (g *Game) OnPrivmsg(src, text string) {
 // character name, password, and class. The IRC nick (from src) is used as the
 // map key and for auto-login; the character name is the display name shown in
 // all game messages and may differ from the IRC nick.
-// Syntax: !register <name> <pass> <class…>
-func (g *Game) CmdRegister(src, name, pass, class string) string {
+// Syntax: !register <name> <pass> <class…> [m|f|n]
+func (g *Game) CmdRegister(src, name, pass, class, gender string) string {
 	nick := extractNick(src)
 	name = sanitize(name)
 	if len(name) == 0 || len(name) > 32 {
@@ -953,11 +1026,15 @@ func (g *Game) CmdRegister(src, name, pass, class string) string {
 	}
 	key := strings.ToLower(nick)
 	nameKey := strings.ToLower(name)
+	if gender != "m" && gender != "f" {
+		gender = "n"
+	}
 	salt := newSalt()
 	p := &Player{
 		Nick:     nick,
 		Name:     name,
 		Class:    class,
+		Gender:   gender,
 		PassSalt: salt,
 		PassHash: hashPass(salt, pass),
 		Level:    0,
@@ -1050,6 +1127,35 @@ func (g *Game) CmdPasswd(src, oldPass, newPass string) string {
 }
 
 // CmdLogout marks the calling player offline. No penalty is applied.
+// CmdGender changes the player's gender pronoun setting. Costs p50 — altering
+// one's cosmic designation is not without consequence.
+func (g *Game) CmdGender(src, gender string) string {
+	nick := extractNick(src)
+	g.mu.Lock()
+	p := g.players[strings.ToLower(nick)]
+	if p == nil || !p.Online || p.Addr != src {
+		g.mu.Unlock()
+		return "You must be logged in to change your gender."
+	}
+	if gender != "m" && gender != "f" && gender != "n" {
+		g.mu.Unlock()
+		return "Valid options: m (he/him), f (she/her), n (they/them)."
+	}
+	if p.Gender == gender {
+		g.mu.Unlock()
+		return "That is already your designation."
+	}
+	p.Gender = gender
+	g.applyPenalty(p, 50)
+	name := p.Name
+	ttl := p.TTL
+	g.mu.Unlock()
+	g.save()
+	pronouns := map[string]string{"m": "he/him", "f": "she/her", "n": "they/them"}
+	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+" reconfigures their designation to "+iB+"%s"+iB+". The realignment costs them. Next phase: "+iB+"%s"+iB+".",
+		name, pronouns[gender], fmtDuration(ttl))
+}
+
 func (g *Game) CmdLogout(src string) string {
 	g.mu.Lock()
 	p := g.findByAddr(src)
@@ -1596,6 +1702,7 @@ func (g *Game) doLevelUp(p *Player) {
 	}
 	slotName := itemSlots[slot]
 	name := p.Name
+	gender := p.Gender
 	level := p.Level
 	ttl := p.TTL
 	isum := p.itemSum()
@@ -1623,9 +1730,9 @@ func (g *Game) doLevelUp(p *Player) {
 		label = " " + rarityLabel(itemRarity)
 	}
 	tmpl := levelUpItemMsgs[mathrand.Intn(len(levelUpItemMsgs))]
-	g.say(tmpl(name, fmt.Sprintf("%d", level), fmtDuration(ttl),
-		articleFor(itemDesc)+" "+itemDesc, itemLevel, equipped, label) +
-		fmt.Sprintf(" [item total: "+iB+"%d"+iB+"]", isum))
+	g.say(genderize(tmpl(name, fmt.Sprintf("%d", level), fmtDuration(ttl),
+		articleFor(itemDesc)+" "+itemDesc, itemLevel, equipped, label)+
+		fmt.Sprintf(" [item total: "+iB+"%d"+iB+"]", isum), &Player{Gender: gender}))
 
 	switch itemRarity {
 	case rarityVoidEternal:
@@ -1871,28 +1978,28 @@ func (g *Game) randomEvent(p *Player) string {
 	switch mathrand.Intn(6) {
 	case 0: // TTL calamity
 		p.TTL += change
-		return fmt.Sprintf(calamityMsgs[mathrand.Intn(len(calamityMsgs))], p.Name, pct) +
-			fmt.Sprintf(" Next phase: "+iB+"%s"+iB+".", fmtDuration(p.TTL))
+		return genderize(fmt.Sprintf(calamityMsgs[mathrand.Intn(len(calamityMsgs))], p.Name, pct)+
+			fmt.Sprintf(" Next phase: "+iB+"%s"+iB+".", fmtDuration(p.TTL)), p)
 
 	case 1: // TTL godsend
 		p.TTL -= change
 		if p.TTL < 1 {
 			p.TTL = 1
 		}
-		return fmt.Sprintf(godsendMsgs[mathrand.Intn(len(godsendMsgs))], p.Name, pct) +
-			fmt.Sprintf(" Next phase: "+iB+"%s"+iB+".", fmtDuration(p.TTL))
+		return genderize(fmt.Sprintf(godsendMsgs[mathrand.Intn(len(godsendMsgs))], p.Name, pct)+
+			fmt.Sprintf(" Next phase: "+iB+"%s"+iB+".", fmtDuration(p.TTL)), p)
 
 	case 2: // Item calamity — degrade one non-zero slot
 		slot := g.pickNonZeroSlot(p)
 		if slot < 0 {
 			// No items yet; fall back to a TTL calamity.
 			p.TTL += change
-			return fmt.Sprintf(calamityMsgs[0], p.Name, pct) +
-			fmt.Sprintf(" Next phase: "+iB+"%s"+iB+".", fmtDuration(p.TTL))
+			return genderize(fmt.Sprintf(calamityMsgs[0], p.Name, pct)+
+				fmt.Sprintf(" Next phase: "+iB+"%s"+iB+".", fmtDuration(p.TTL)), p)
 		}
 		old := p.Items[slot]
 		p.Items[slot] = int(math.Max(float64(old)*float64(100-pct)/100, 1))
-		return fmt.Sprintf(itemCalamityMsgs[mathrand.Intn(len(itemCalamityMsgs))], p.Name, itemSlots[slot], pct)
+		return genderize(fmt.Sprintf(itemCalamityMsgs[mathrand.Intn(len(itemCalamityMsgs))], p.Name, itemSlots[slot], pct), p)
 
 	case 3: // Item godsend — improve one slot (creates a level-1 item if all empty)
 		slot := g.pickNonZeroSlot(p)
@@ -1902,7 +2009,7 @@ func (g *Game) randomEvent(p *Player) string {
 		}
 		old := p.Items[slot]
 		p.Items[slot] = int(math.Max(float64(old)*float64(100+pct)/100, float64(old)+1))
-		return fmt.Sprintf(itemGodsendMsgs[mathrand.Intn(len(itemGodsendMsgs))], p.Name, itemSlots[slot], pct)
+		return genderize(fmt.Sprintf(itemGodsendMsgs[mathrand.Intn(len(itemGodsendMsgs))], p.Name, itemSlots[slot], pct), p)
 
 	case 4: // Found item — random slot, level up to 1.5× player level
 		slot := mathrand.Intn(10)
@@ -1916,8 +2023,8 @@ func (g *Game) randomEvent(p *Player) string {
 			p.ItemNames[slot] = itemName
 			equipped = "and equips it"
 		}
-		return fmt.Sprintf(foundItemMsgs[mathrand.Intn(len(foundItemMsgs))],
-			p.Name, articleFor(itemName), itemName, found, equipped, p.itemSum())
+		return genderize(fmt.Sprintf(foundItemMsgs[mathrand.Intn(len(foundItemMsgs))],
+			p.Name, articleFor(itemName), itemName, found, equipped, p.itemSum()), p)
 
 	default: // Warp — teleport to a random position; range scales with level.
 		warpRange := p.Level * 10
@@ -1931,7 +2038,7 @@ func (g *Game) randomEvent(p *Player) string {
 		dy := mathrand.Intn(2*warpRange+1) - warpRange
 		p.X = (p.X + dx + gridSize*10) % gridSize
 		p.Y = (p.Y + dy + gridSize*10) % gridSize
-		return fmt.Sprintf(warpMsgs[mathrand.Intn(len(warpMsgs))], p.Name, p.X, p.Y)
+		return genderize(fmt.Sprintf(warpMsgs[mathrand.Intn(len(warpMsgs))], p.Name, p.X, p.Y), p)
 	}
 }
 
