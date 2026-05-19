@@ -489,6 +489,15 @@ var creepHostileLossMsgs = []string{
 	"Proximity alarm: the " + iB + "%s" + iB + " finds " + fNick + " " + fRoll + " vs " + fRoll + ". Phase delayed by " + fBadPct + ".",
 }
 
+// creepDropMsgs: player loots a defeated creep. Args: playerName, itemDesc, slotName, itemLevel, equippedNote.
+var creepDropMsgs = []string{
+	fNick + " salvages %s from the wreckage — " + fSlot + " level " + fLvl + "%s.",
+	fNick + " recovers %s from the debris — " + fSlot + " level " + fLvl + "%s.",
+	fNick + " strips %s from the dissolving core — " + fSlot + " level " + fLvl + "%s.",
+	fNick + " extracts %s from the ruins — " + fSlot + " level " + fLvl + "%s.",
+	fNick + " claims %s from the shattered entity — " + fSlot + " level " + fLvl + "%s.",
+}
+
 // creepPeacefulMsgs: player passes a peaceful creep without incident. Args: playerName, creepName, x, y.
 var creepPeacefulMsgs = []string{
 	fNick + " drifts past a " + iB + "%s" + iB + " at (" + iB + "%d,%d" + iB + "). It pays them no mind.",
@@ -1710,6 +1719,27 @@ func (g *Game) respawnCreep(idx int) {
 	}
 }
 
+// creepDrop rolls a potential item drop for a player who just defeated a
+// hostile creep. Drop chance is 40%; item level is 1–creep.Level so stronger
+// creeps drop better loot. Must be called with mu held.
+func (g *Game) creepDrop(p *Player, c *Creep) string {
+	if mathrand.Intn(10) >= 4 { // 60% no drop
+		return ""
+	}
+	slot := mathrand.Intn(10)
+	slotName := itemSlots[slot]
+	itemLevel := mathrand.Intn(c.Level) + 1
+	itemName := generateItemName(rarityNormal, slotName)
+	equippedNote := ""
+	if itemLevel > p.Items[slot] {
+		p.Items[slot] = itemLevel
+		p.ItemNames[slot] = itemName
+		equippedNote = " (equipped)"
+	}
+	return fmt.Sprintf(creepDropMsgs[mathrand.Intn(len(creepDropMsgs))],
+		p.Name, articleFor(itemName)+" "+itemName, slotName, itemLevel, equippedNote)
+}
+
 // tickCreeps moves every creep one step and checks for player encounters.
 // Hostile creeps battle any co-tile player; peaceful creeps may grant a small
 // bonus. At most one creep encounter fires per tick to avoid flooding.
@@ -1779,6 +1809,9 @@ func (g *Game) tickCreeps(online []*Player) []string {
 				}
 				tmpl := creepHostileWinMsgs[mathrand.Intn(len(creepHostileWinMsgs))]
 				msgs = append(msgs, fmt.Sprintf(tmpl, p.Name, c.Name, pRoll, pSum, cRoll, cSum, pct))
+				if drop := g.creepDrop(p, c); drop != "" {
+					msgs = append(msgs, drop)
+				}
 				g.respawnCreep(idx)
 			} else {
 				pct := mathrand.Intn(8) + 7 // 7–14%

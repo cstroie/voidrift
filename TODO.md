@@ -52,6 +52,14 @@
 - [x] **Varied level-up item narratives** — 5 randomly chosen framings for level-up item drop messages.
 - [x] **Increased event frequencies** — bot battles, server events, and quests all fire more often.
 
+## Next Up
+
+- [x] **Creep drops** — hostile creeps have a 40% chance to drop an item on defeat; item level scales with creep level.
+- [ ] **`!map` command** — ASCII minimap showing the player's surroundings, nearby players, and visible creeps.
+- [ ] **Achievements / titles** — unlock flavour titles at milestone levels or for specific feats (first kill, quest veteran, etc.); shown in `!status`.
+- [ ] **Seasonal events** — time-limited server-wide events with unique mechanics tied to real-world calendar dates.
+- [ ] **Player profiles / stats** — track battles won, quests completed, creeps slain, items found; exposed via a `!stats` command.
+
 ## Bugs / Polish
 
 - [x] `CmdRegister` now uses the caller's IRC nick; the explicit nick argument was removed.
