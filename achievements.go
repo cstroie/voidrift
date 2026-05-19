@@ -181,6 +181,18 @@ func earnedTitle(p *Player) string {
 	return title
 }
 
+// seedAchievements silently records all currently-earned achievements for p
+// without producing announcements. Call on login so that achievements earned
+// before this field existed (or before this session) are not re-announced.
+// Must be called with mu held.
+func (g *Game) seedAchievements(p *Player) {
+	for _, a := range allAchievements {
+		if !hasAchievement(p, a.ID) && a.unlocked(p) {
+			p.Achievements = append(p.Achievements, a.ID)
+		}
+	}
+}
+
 // checkAchievements tests every achievement against p's current state and
 // records any newly unlocked ones. Returns one announcement string per new
 // unlock. Must be called with mu held.

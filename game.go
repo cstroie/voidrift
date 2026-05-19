@@ -1000,6 +1000,7 @@ func (g *Game) OnJoin(src string) {
 		// encounters by repeatedly quitting and rejoining near a target.
 		p.X = mathrand.Intn(gridSize)
 		p.Y = mathrand.Intn(gridSize)
+		g.seedAchievements(p)
 	}
 	g.mu.Unlock()
 	if p != nil && !alreadyOnline {
@@ -1216,6 +1217,7 @@ func (g *Game) CmdLogin(src, pass string) string {
 	p.Online = true
 	p.Addr = src
 	p.LastLogin = time.Now()
+	g.seedAchievements(p)
 	g.mu.Unlock()
 	g.save()
 	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+", the level "+iB+"%d"+iB+" "+iI+"%s"+iI+", logged in. Next phase: "+iB+"%s"+iB+".", p.Name, p.Level, p.Class, fmtDuration(p.TTL))
@@ -1403,17 +1405,12 @@ func (g *Game) CmdStatus(src, targetNick string) string {
 			focusDisplay += "+" + slot2
 		}
 	}
-	pronouns := map[string]string{"m": "he/him", "f": "she/her", "n": "they/them"}
-	pronounDisplay := pronouns[p.Gender]
-	if pronounDisplay == "" {
-		pronounDisplay = "they/them"
-	}
 	titleDisplay := ""
 	if t := earnedTitle(p); t != "" {
 		titleDisplay = " " + iB + "[" + t + "]" + iB
 	}
-	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+"%s ("+iI+"%s"+iI+"), the level "+iB+"%d"+iB+" %s "+iI+"%s"+iI+" [%s]%s — phase: "+iB+"%s"+iB+" — Items: "+iB+"%d"+iB+" (focus: %s)",
-		p.Name, titleDisplay, pronounDisplay, p.Level, alignNames[p.Alignment], classDisplay, status, questInfo,
+	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+"%s, the level "+iB+"%d"+iB+" %s "+iI+"%s"+iI+" [%s]%s — phase: "+iB+"%s"+iB+" — Items: "+iB+"%d"+iB+" (focus: %s)",
+		p.Name, titleDisplay, p.Level, alignNames[p.Alignment], classDisplay, status, questInfo,
 		fmtDuration(p.TTL), p.itemSum(), focusDisplay)
 }
 
