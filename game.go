@@ -547,6 +547,15 @@ const (
 	AlignGood    int8 = 1
 )
 
+// seedAlignDrift sets AlignDriftAt for neutral players that don't have one yet
+// (existing characters). Threshold = current level + 1..5.
+// Must be called with mu held (or before the player is shared).
+func seedAlignDrift(p *Player) {
+	if p.Alignment == AlignNeutral && p.AlignDriftAt == 0 {
+		p.AlignDriftAt = p.Level + mathrand.Intn(5) + 1
+	}
+}
+
 // alignDriftMsgs are announced when a neutral character is forced into good or
 // evil alignment. %s = name, %s = "good" or "evil".
 var alignDriftMsgs = []string{
@@ -1022,6 +1031,7 @@ func (g *Game) OnJoin(src string) {
 		p.Online = true
 		p.Addr = src
 		p.LastLogin = time.Now()
+		seedAlignDrift(p)
 		// Position is randomised on every login so players cannot farm
 		// encounters by repeatedly quitting and rejoining near a target.
 		p.X = mathrand.Intn(gridSize)
@@ -1249,6 +1259,7 @@ func (g *Game) CmdLogin(src, pass string) string {
 	p.Addr = src
 	p.LastLogin = time.Now()
 	g.seedAchievements(p)
+	seedAlignDrift(p)
 	g.mu.Unlock()
 	g.save()
 	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+", the level "+iB+"%d"+iB+" "+iI+"%s"+iI+", logged in. Next phase: "+iB+"%s"+iB+".", p.Name, p.Level, p.Class, fmtDuration(p.TTL))
