@@ -49,7 +49,7 @@ Build and test with `go build ./...` and `go test ./...`.
 
 | Command | Description |
 |---------|-------------|
-| `!register <name> <pass> <class> [m/f/n]` | Create a character; gender optional (m/f/n) |
+| `!register <name> <pass> <class> [m/f/n]` | Create a character; all fields are single tokens (no spaces); gender optional (m/f/n) |
 | `!login <pass>` | Log in manually |
 | `!logout` | Go offline |
 | `!passwd <old> <new>` | Change password |

@@ -338,7 +338,7 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 
 // helpText is the single-line command reference sent in response to !help.
 const helpText = "Void Drift commands: " +
-	"!register <name> <pass> <class> | " +
+	"!register <name> <pass> <class> [m|f|n] (no spaces in any field) | " +
 	"!login <pass> | !logout | !passwd <oldpass> <newpass> | !gender <m|f|n> | " +
 	"!dualclass <class> (level 12+, permanent) | " +
 	"!align <good|neutral|evil> | " +
@@ -346,30 +346,31 @@ const helpText = "Void Drift commands: " +
 	"!gcreate <name> | !ginvite <nick> | !gaccept | !gdecline | " +
 	"!gleave | !gkick <nick> | !ginfo [name] | !gtop"
 
-// dispatchRegister handles !register <name> <pass> <class…> [m|f|n].
-// name and pass are single tokens; class may span multiple words.
-// The optional last token sets gender (m/f/n); defaults to n (they/them).
+// dispatchRegister handles !register <name> <pass> <class> [m|f|n].
+// All three required fields are single tokens (no spaces allowed).
+// The optional fourth token sets gender (m/f/n); defaults to n (they/them).
 func dispatchRegister(src string, fields []string, g *Game, say, reply func(string)) {
+	const usage = "Usage: !register <name> <pass> <class> [m|f|n]  — no spaces in any field"
 	if len(fields) < 4 {
-		reply("Usage: !register <name> <pass> <class> [m|f|n]")
+		reply(usage)
 		return
 	}
 	name := fields[1]
 	pass := fields[2]
-	rest := fields[3:]
+	class := fields[3]
 	gender := "n"
-	if len(rest) > 0 {
-		last := rest[len(rest)-1]
+	if len(fields) == 5 {
+		last := fields[4]
 		if last == "m" || last == "f" || last == "n" {
 			gender = last
-			rest = rest[:len(rest)-1]
+		} else {
+			reply(usage)
+			return
 		}
-	}
-	if len(rest) == 0 {
-		reply("Usage: !register <name> <pass> <class> [m|f|n]")
+	} else if len(fields) > 5 {
+		reply(usage)
 		return
 	}
-	class := strings.Join(rest, " ")
 	say(g.CmdRegister(src, name, pass, class, gender))
 }
 

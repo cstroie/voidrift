@@ -22,16 +22,16 @@ var suggestEpithets = []string{
 }
 
 var suggestClasses = []string{
-	"Null Walker", "Drift Seeker", "Signal Ghost", "Void Touched",
-	"Phase Drifter", "Echo Remnant", "Entropy Singer", "Pale Architect",
-	"Veil Runner", "Collapse Survivor", "Signal Hunter", "Void Drifter",
-	"Null Seeker", "Drift Phantom", "Phase Ghost", "Echo Walker",
-	"Architect's Shade", "Drift Hermit", "Null Acolyte", "Signal Wraith",
+	"Null-Walker", "Drift-Seeker", "Signal-Ghost", "Void-Touched",
+	"Phase-Drifter", "Echo-Remnant", "Entropy-Singer", "Pale-Architect",
+	"Veil-Runner", "Collapse-Survivor", "Signal-Hunter", "Void-Drifter",
+	"Null-Seeker", "Drift-Phantom", "Phase-Ghost", "Echo-Walker",
+	"Architects-Shade", "Drift-Hermit", "Null-Acolyte", "Signal-Wraith",
 }
 
 // generateSuggestion returns a random (name, class) pair drawn from the themed
-// wordlists. The name is a hyphenated GivenName-Epithet so it forms a single
-// IRC token suitable for use directly in !register.
+// wordlists. Both are single IRC tokens (no spaces) suitable for use directly
+// in !register: name is GivenName-Epithet, class is Hyphenated-Class.
 func generateSuggestion() (name, class string) {
 	given := suggestGivenNames[mathrand.Intn(len(suggestGivenNames))]
 	epithet := suggestEpithets[mathrand.Intn(len(suggestEpithets))]
