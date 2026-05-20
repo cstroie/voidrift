@@ -547,6 +547,18 @@ const (
 	AlignGood    int8 = 1
 )
 
+// alignDriftMsgs are announced when a neutral character is forced into good or
+// evil alignment. %s = name, %s = "good" or "evil".
+var alignDriftMsgs = []string{
+	"The Void has judged %s — nobody escapes neutral forever. Alignment locked: %s.",
+	"The Deep Signal renders its verdict on %s. Neutrality is a lie. Alignment: %s.",
+	"Prolonged exposure to the Drift reveals %s's true nature: %s.",
+	"The Pale Architects have classified %s. Neutrality denied. %s.",
+	"The void cannot sustain balance in %s forever. The scales tip: %s.",
+	"Protocol ZERO designates %s. No one stays neutral. Alignment: %s.",
+	"The Drift strips away ambiguity from %s. What remains is %s.",
+}
+
 // alignNames maps the numeric alignment to its display string.
 var alignNames = map[int8]string{
 	AlignEvil:    "evil",
@@ -747,7 +759,11 @@ type Player struct {
 	PassHash string
 
 	// Alignment affects battle power (+/-10%), crit chance, and daily events.
-	Alignment int8
+	// AlignDriftAt is the level at which a neutral character is forced to
+	// choose good or evil. Set randomly to 5–10 at registration; 0 means unset
+	// (treated as already resolved or pre-existing character).
+	Alignment    int8
+	AlignDriftAt int
 
 	Level int
 	// TTL is seconds until the next level-up. It decrements by 1 every tick
@@ -1163,16 +1179,17 @@ func (g *Game) CmdRegister(src, name, pass, class, gender string) string {
 	now := time.Now()
 	salt := newSalt()
 	p := &Player{
-		Nick:      nick,
-		Name:      name,
-		Class:     class,
-		Gender:    gender,
-		PassSalt:  salt,
-		PassHash:  hashPass(salt, pass),
-		Level:     0,
-		TTL:       g.ttlForLevel(0),
-		CreatedAt: now,
-		LastLogin: now,
+		Nick:         nick,
+		Name:         name,
+		Class:        class,
+		Gender:       gender,
+		PassSalt:     salt,
+		PassHash:     hashPass(salt, pass),
+		Level:        0,
+		TTL:          g.ttlForLevel(0),
+		AlignDriftAt: mathrand.Intn(6) + 5, // forced alignment at level 5–10
+		CreatedAt:    now,
+		LastLogin:    now,
 		// Auto-login: the player is clearly present since they just registered.
 		Online: true,
 		Addr:   src,
@@ -1887,6 +1904,18 @@ func (g *Game) tickPlayers(online []*Player) (levelUps []*Player, msgs []string)
 		if p.TTL <= 0 {
 			levelUps = append(levelUps, p)
 			continue
+		}
+		// Forced alignment drift: neutral players are assigned good or evil
+		// when they reach their AlignDriftAt level.
+		if p.Alignment == AlignNeutral && p.AlignDriftAt > 0 && p.Level >= p.AlignDriftAt {
+			if mathrand.Intn(2) == 0 {
+				p.Alignment = AlignGood
+			} else {
+				p.Alignment = AlignEvil
+			}
+			p.AlignDriftAt = 0 // mark resolved
+			tmpl := alignDriftMsgs[mathrand.Intn(len(alignDriftMsgs))]
+			msgs = append(msgs, genderize(fmt.Sprintf(tmpl, p.Name, alignNames[p.Alignment]), p))
 		}
 		// ~6/day: random individual event (calamity, godsend, item change, find item).
 		if rateCheck(86400/6, g.Rates.PlayerEvents) {
