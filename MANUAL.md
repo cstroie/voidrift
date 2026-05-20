@@ -383,6 +383,7 @@ significant drop.
 !logout                         — go offline without leaving the channel
 !online                         — list all currently online players
 !top                            — top 5 players by level
+!all                            — all registered players sorted by level (* = online)
 ```
 
 `!rename` and `!reclass` follow the same no-spaces rule as registration: one word,

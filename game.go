@@ -1802,6 +1802,37 @@ func (g *Game) CmdTop() string {
 	return "Top players: " + strings.Join(parts, " | ")
 }
 
+// CmdAll returns all registered players sorted by level descending, then TTL ascending.
+func (g *Game) CmdAll() string {
+	g.mu.Lock()
+	players := make([]*Player, 0, len(g.players))
+	for _, p := range g.players {
+		players = append(players, p)
+	}
+	g.mu.Unlock()
+
+	if len(players) == 0 {
+		return "No players yet."
+	}
+
+	sort.Slice(players, func(i, j int) bool {
+		if players[i].Level != players[j].Level {
+			return players[i].Level > players[j].Level
+		}
+		return players[i].TTL < players[j].TTL
+	})
+
+	parts := make([]string, len(players))
+	for i, p := range players {
+		online := ""
+		if p.Online {
+			online = "*"
+		}
+		parts[i] = fmt.Sprintf("%d. %s%s lvl %d %s", i+1, p.Name, online, p.Level, p.Class)
+	}
+	return "All players: " + strings.Join(parts, " | ")
+}
+
 // CmdQuest returns a human-readable description of the active quest including
 // questers, objective, type, and remaining time.
 func (g *Game) CmdQuest() string {

@@ -327,6 +327,8 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 		reply(g.CmdStatus(src, ""))
 	case "!top":
 		reply(g.CmdTop())
+	case "!all":
+		reply(g.CmdAll())
 	case "!online":
 		reply(g.CmdOnline())
 	case "!quest":
@@ -363,7 +365,7 @@ const helpText = "Void Drift commands: " +
 	"!rename <name> | !reclass <class> | !reclass2 <class> | " +
 	"!dualclass <class> (level 12+, permanent) | " +
 	"!align <good|neutral|evil> | " +
-	"!status [nick] | !whoami | !stats [nick] | !achievements [nick] | !top | !online | !quest | !items [nick] | !pos [nick] | !map | " +
+	"!status [nick] | !whoami | !stats [nick] | !achievements [nick] | !top | !all | !online | !quest | !items [nick] | !pos [nick] | !map | " +
 	"!gcreate <name> | !ginvite <nick> | !gaccept | !gdecline | " +
 	"!gleave | !gkick <nick> | !ginfo [name] | !gtop"
 

@@ -65,6 +65,7 @@ Build and test with `go build ./...` and `go test ./...`.
 | `!stats [nick]` | Idled time, timestamps, total and per-source penalty breakdown |
 | `!achievements [nick]` | Earned titles and progress toward next unlock in each category |
 | `!top` | Top 5 players by level |
+| `!all` | All registered players sorted by level; online players marked with `*` |
 | `!items [nick]` | Full item loadout with unique names |
 | `!pos [nick]` | Grid coordinates and co-located players |
 | `!map` | 11×7 ASCII minimap centred on caller; shows players, creeps, quest target |
