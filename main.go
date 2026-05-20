@@ -161,6 +161,9 @@ func registerHandlers(conn *irc.Conn, game *Game, say func(string), connected ch
 	*resetWHO = registerWHOHandlers(conn, game, botNick, dev)
 
 	conn.HandleFunc("JOIN", func(c *irc.Conn, line *irc.Line) {
+		if len(line.Args) == 0 || !strings.EqualFold(line.Args[0], channel) {
+			return
+		}
 		joiningNick := extractNick(line.Src)
 		if joiningNick == botNick {
 			// Request ops from ChanServ whenever the bot joins the channel.
