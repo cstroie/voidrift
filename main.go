@@ -123,6 +123,12 @@ func main() {
 func registerHandlers(conn *irc.Conn, game *Game, say func(string), connected chan bool,
 	channel, botNick, nickservPass, chanserv string, dev bool, invitedAt map[string]time.Time, resetWHO *func()) {
 
+	// welcomedAt deduplicates suggest messages: if the JOIN handler fires more
+	// than once for the same nick within 10 seconds (e.g. due to goirc sending
+	// an internal WHO after the bot joins, or an IRC server replaying JOINs on
+	// reconnect), only the first occurrence sends the welcome DMs.
+	welcomedAt := make(map[string]time.Time)
+
 	// maybeInvite sends an IRC INVITE to nick if they are a registered player
 	// not currently in the channel, and have not been invited within the last hour.
 	maybeInvite := func(c *irc.Conn, nick string) {
@@ -164,8 +170,12 @@ func registerHandlers(conn *irc.Conn, game *Game, say func(string), connected ch
 			return
 		}
 		game.OnJoin(line.Src)
-		for _, msg := range game.SuggestForNick(joiningNick) {
-			c.Privmsg(joiningNick, msg)
+		key := strings.ToLower(joiningNick)
+		if time.Since(welcomedAt[key]) >= 10*time.Second {
+			welcomedAt[key] = time.Now()
+			for _, msg := range game.SuggestForNick(joiningNick) {
+				c.Privmsg(joiningNick, msg)
+			}
 		}
 	})
 	conn.HandleFunc("PART", func(c *irc.Conn, line *irc.Line) { game.OnPart(line.Src) })
