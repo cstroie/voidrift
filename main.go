@@ -329,6 +329,8 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 		for _, line := range g.CmdAchievements(src, optArg(fields, 1)) {
 			reply(line)
 		}
+	case "!suggest":
+		reply(g.Suggest())
 	case "!help":
 		reply(helpText)
 	default:
@@ -338,7 +340,7 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 
 // helpText is the single-line command reference sent in response to !help.
 const helpText = "Void Drift commands: " +
-	"!register <name> <pass> <class> [m|f|n] (no spaces in any field) | " +
+	"!register <name> <pass> <class> [m|f|n] (no spaces in any field) | !suggest | " +
 	"!login <pass> | !logout | !passwd <oldpass> <newpass> | !gender <m|f|n> | " +
 	"!dualclass <class> (level 12+, permanent) | " +
 	"!align <good|neutral|evil> | " +

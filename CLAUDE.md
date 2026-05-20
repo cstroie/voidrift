@@ -50,6 +50,7 @@ Build and test with `go build ./...` and `go test ./...`.
 | Command | Description |
 |---------|-------------|
 | `!register <name> <pass> <class> [m/f/n]` | Create a character; all fields are single tokens (no spaces); gender optional (m/f/n) |
+| `!suggest` | Get a fresh random name and class suggestion |
 | `!login <pass>` | Log in manually |
 | `!logout` | Go offline |
 | `!passwd <old> <new>` | Change password |
