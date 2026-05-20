@@ -123,7 +123,7 @@ const (
 	fBadPct  = iB + cRed + "%d%%" + iC + iB         // bold red %
 	fGoodPct = iB + cTeal + "%d%%" + iC + iB        // bold teal %
 	fPct     = iB + "%d%%" + iB                     // bold neutral %
-	fSlot    = iI + "%s" + iI                       // italic slot name
+	fSlot    = iI + "%s" + iI                       // italic item label (unique name or slot name)
 	fLvl     = iB + "%d" + iB                       // bold item level
 	fRoll    = iB + cOrange + "[%d/%d]" + iC + iB   // bold orange roll
 	fBot     = iB + cPink + "Protocol ZERO" + iC + iB
@@ -198,7 +198,8 @@ var godsendMsgs = []string{
 	"Something enormous and indifferent nudges " + fNick + " forward in passing. Phase advanced by " + fGoodPct + ".",
 }
 
-// Item-event templates. Args: (nick, slotName, pct).
+// Item-event templates. Args: (nick, itemLabel, pct).
+// itemLabel is the unique item name if the slot has one, otherwise the slot name.
 var itemCalamityMsgs = []string{
 	fNick + "'s " + fSlot + " is corroded by entropic flux. Item degraded by " + fBadPct + ".",
 	"A Null tendril phases through " + fNick + "'s " + fSlot + ", leaving it weakened. Item degraded by " + fBadPct + ".",
@@ -248,8 +249,7 @@ var itemGodsendMsgs = []string{
 }
 
 // foundItemMsgs are used when a player stumbles upon a random item.
-// Args: (playerName, slotName, itemLevel, equippedVerb, itemTotal).
-// foundItemMsgs args: (playerName, article, slotName, itemLevel, equippedVerb, itemTotal).
+// Args: (playerName, article, itemName, itemLevel, equippedVerb, itemTotal).
 var foundItemMsgs = []string{
 	"%s stumbles upon %s %s of level %d in the wreckage of a pre-collapse freighter %s. [item total: %d]",
 	"%s pulls %s %s of level %d from a derelict escape pod %s. [item total: %d]",
@@ -411,7 +411,8 @@ var botBattleLossMsgs = []string{
 	fNick + " " + fRoll + " is systematically dismantled by the " + fNullI + " " + fRoll + ". Phase delayed by " + fBadPct + ".",
 }
 
-// stealEquipMsgs and stealDiscardMsgs: post-battle item theft. Args: winner, loser, itemDesc, itemLevel.
+// stealEquipMsgs and stealDiscardMsgs: post-battle item theft. Args: winner, loser, itemLabel, itemLevel.
+// itemLabel is the unique item name if the slot has one, otherwise the slot name.
 var stealEquipMsgs = []string{
 	fNick + " strips " + fNick + "'s " + fSlot + " (lvl " + fLvl + ") and integrates it.",
 	fNick + " extracts " + fNick + "'s " + fSlot + " (lvl " + fLvl + ") in the chaos and slots it in.",
@@ -623,7 +624,8 @@ var goodEventMsgs = []string{
 	fNick + " and " + fNick + " share coordinates through an encrypted channel. Both gain " + fGoodPct + ".",
 }
 
-// evilStealMsgs: evil alignment item theft. Args: (evilNick, victimNick, slotName, itemLevel).
+// evilStealMsgs: evil alignment item theft. Args: (evilNick, victimNick, itemLabel, itemLevel).
+// itemLabel is the unique item name if the slot has one, otherwise the slot name.
 var evilStealMsgs = []string{
 	fNick + " transmits a targeting signal — " + fNick + "'s " + fSlot + " (level " + fLvl + ") goes dark.",
 	fNick + " exploits the Drift's passage to strip " + fNick + "'s " + fSlot + " (level " + fLvl + ").",
@@ -3174,12 +3176,16 @@ func (g *Game) evilAlignmentEvent(p *Player, online []*Player) string {
 		slot := g.pickNonZeroSlot(target)
 		if slot >= 0 {
 			stolen := target.Items[slot]
+			stolenName := target.ItemNames[slot]
+			label := itemLabel(target, slot)
 			target.Items[slot] = 0
+			target.ItemNames[slot] = ""
 			if stolen > p.Items[slot] {
 				p.Items[slot] = stolen
+				p.ItemNames[slot] = stolenName
 			}
 			return fmt.Sprintf(evilStealMsgs[mathrand.Intn(len(evilStealMsgs))],
-				p.Name, target.Name, itemSlots[slot], stolen)
+				p.Name, target.Name, label, stolen)
 		}
 	}
 
