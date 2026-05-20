@@ -386,8 +386,7 @@ battle effectiveness.
   events compound over time; the 1/50 crit is a bonus, not the core advantage.
 - **Evil's 1/20 crit beats good's in fast PvP**, but the −10% battle penalty hurts
   against well-geared opponents.
-- **Focus slot matters for gear priorities.** Check `!status` to learn your focus
-  slot, then prioritise upgrading that slot — it counts double in every battle roll.
+- **Focus slot is your class identity.** Check `!status` to see which slot your class focuses — it counts double in every battle roll, but all upgrades are random so it shapes your character flavour rather than your strategy.
 - **Missions are opt-in by existing.** You cannot choose to join or leave; just be
   online, at level 15+, and you may be selected. Logging out avoids selection but
   costs p200.
