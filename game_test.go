@@ -234,13 +234,6 @@ func TestEffectiveItemSum(t *testing.T) {
 		t.Errorf("effectiveItemSum (single class) = %d, want %d", got, want)
 	}
 
-	// Dual-class always adds a second focus bonus of 10, whether or not
-	// the two focus slots are the same.
-	p.Class2 = "Mage"
-	wantDual := 120
-	if got := effectiveItemSum(p); got != wantDual {
-		t.Errorf("effectiveItemSum (dual-class) = %d, want %d", got, wantDual)
-	}
 }
 
 // --- CmdRegister ---
@@ -379,38 +372,6 @@ func TestCmdAlignInvalid(t *testing.T) {
 	msg := g.CmdAlign("X!x@h", "chaotic")
 	if !strings.Contains(msg, "Usage") {
 		t.Errorf("expected usage error, got %q", msg)
-	}
-}
-
-// --- CmdDualClass ---
-
-func TestCmdDualClass(t *testing.T) {
-	g := newTestGame()
-	g.CmdRegister("Alice!a@h", "Alice", "pass", "Warrior", "n")
-	g.CmdLogin("Alice!a@h", "pass")
-	p := g.players["alice"]
-
-	// Below level 12: should fail.
-	p.Level = 11
-	msg := g.CmdDualClass("Alice!a@h", "Mage")
-	if !strings.Contains(msg, "level 12") {
-		t.Errorf("expected level-12 requirement, got %q", msg)
-	}
-
-	// At level 12: should succeed.
-	p.Level = 12
-	msg = g.CmdDualClass("Alice!a@h", "Mage")
-	if !strings.Contains(msg, "Warrior/Mage") {
-		t.Errorf("expected dual-class confirmation, got %q", msg)
-	}
-	if p.Class2 != "Mage" {
-		t.Errorf("Class2 = %q, want Mage", p.Class2)
-	}
-
-	// Second call should fail.
-	msg2 := g.CmdDualClass("Alice!a@h", "Rogue")
-	if !strings.Contains(msg2, "already dual-classed") {
-		t.Errorf("expected already-dual-classed error, got %q", msg2)
 	}
 }
 

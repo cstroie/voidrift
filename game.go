@@ -727,8 +727,7 @@ type Creep struct {
 type Player struct {
 	Nick   string // IRC nick, case-preserved; used for auto-login and penalty tracking
 	Name   string // character display name chosen at registration; shown in all game output
-	Class  string // primary class, free-form text chosen at registration
-	Class2 string // secondary class chosen via !dualclass at level 12+; empty if not dual-classed
+	Class string // primary class, free-form text chosen at registration
 
 	// Password is stored as a salted SHA-256 hash. PassSalt is a 16-byte
 	// random value encoded as 32 hex characters. This prevents rainbow-table
@@ -785,7 +784,7 @@ type Player struct {
 	PenKick  int64
 	PenQuit  int64
 	PenQuest int64
-	PenOther int64 // align, gender, dualclass, etc.
+	PenOther int64 // align, gender, rename, reclass, etc.
 }
 
 // they/their/them/themselves return the subject, possessive, object, and
@@ -1325,47 +1324,6 @@ func (g *Game) CmdAlign(src, align string) string {
 	return fmt.Sprintf("%s is already %s.", p.Name, alignNames[newAlign])
 }
 
-// CmdDualClass lets a player at level 12+ permanently choose a second class.
-// The second class adds an additional focus-slot bonus in all battle rolls.
-func (g *Game) CmdDualClass(src, class string) string {
-	class = sanitize(class)
-	if class == "" {
-		return "Usage: !dualclass <class>"
-	}
-	if len(class) > 50 {
-		return "Class name must be 50 characters or fewer."
-	}
-	if !isValidName(class) {
-		return "Class name may only contain letters, digits, spaces, hyphens, apostrophes, and dots."
-	}
-	g.mu.Lock()
-	p := g.findByAddr(src)
-	if p == nil {
-		g.mu.Unlock()
-		return "You are not logged in."
-	}
-	if p.Level < 12 {
-		g.mu.Unlock()
-		return fmt.Sprintf("You must be at least level 12 to dual-class (you are level %d).", p.Level)
-	}
-	if p.Class2 != "" {
-		g.mu.Unlock()
-		return fmt.Sprintf("You are already dual-classed as %s/%s.", p.Class, p.Class2)
-	}
-	p.Class2 = class
-	slot1 := classFocusSlot(p.Class)
-	slot2 := classFocusSlot(p.Class2)
-	name := p.Name
-	g.mu.Unlock()
-	g.save()
-	if slot1 == slot2 {
-		return fmt.Sprintf("%s is now a %s/%s! Both classes share the %s focus — that slot counts triple in battle.",
-			name, p.Class, class, itemSlots[slot1])
-	}
-	return fmt.Sprintf("%s is now a %s/%s! Primary focus: %s. Secondary focus: %s. Both count double in battle.",
-		name, p.Class, class, itemSlots[slot1], itemSlots[slot2])
-}
-
 // CmdRename changes the calling player's character name. Costs p100.
 func (g *Game) CmdRename(src, newName string) string {
 	newName = sanitize(newName)
@@ -1433,45 +1391,6 @@ func (g *Game) CmdReclass(src, newClass string) string {
 		name, oldClass, newClass, itemSlots[slot], fmtDuration(ttl))
 }
 
-// CmdReclass2 changes the calling player's secondary class. Costs p100.
-// Requires the player to already have a secondary class set via !dualclass.
-func (g *Game) CmdReclass2(src, newClass string) string {
-	newClass = sanitize(newClass)
-	if newClass == "" || strings.ContainsAny(newClass, " \t") {
-		return "Usage: !reclass2 <class>  — one word, no spaces"
-	}
-	if len(newClass) > 50 {
-		return "Class name must be 50 characters or fewer."
-	}
-	if !isValidName(newClass) {
-		return "Class name may only contain letters, digits, hyphens, apostrophes, and dots."
-	}
-	g.mu.Lock()
-	p := g.findByAddr(src)
-	if p == nil {
-		g.mu.Unlock()
-		return "You are not logged in."
-	}
-	if p.Class2 == "" {
-		g.mu.Unlock()
-		return "You do not have a secondary class. Use !dualclass at level 12+ to choose one."
-	}
-	if p.Class2 == newClass {
-		g.mu.Unlock()
-		return "That is already your secondary class."
-	}
-	oldClass := p.Class2
-	p.Class2 = newClass
-	g.applyPenalty(p, 100, penOther)
-	name := p.Name
-	slot := classFocusSlot(newClass)
-	ttl := p.TTL
-	g.mu.Unlock()
-	g.save()
-	return fmt.Sprintf(iB+cCyan+"%s"+iC+iB+" forsakes "+iB+"%s"+iB+" and adopts "+iB+"%s"+iB+" as secondary class. Secondary focus shifts to "+iB+"%s"+iB+". Next phase: "+iB+"%s"+iB+".",
-		name, oldClass, newClass, itemSlots[slot], fmtDuration(ttl))
-}
-
 // CmdStatus returns a one-line status summary for the target player. If
 // targetNick is empty, it reports on the calling player.
 func (g *Game) CmdStatus(src, targetNick string) string {
@@ -1502,15 +1421,6 @@ func (g *Game) CmdStatus(src, targetNick string) string {
 	g.mu.Unlock()
 	classDisplay := p.Class
 	focusDisplay := itemSlots[classFocusSlot(p.Class)]
-	if p.Class2 != "" {
-		classDisplay = p.Class + "/" + p.Class2
-		slot2 := itemSlots[classFocusSlot(p.Class2)]
-		if slot2 == focusDisplay {
-			focusDisplay += "×3"
-		} else {
-			focusDisplay += "+" + slot2
-		}
-	}
 	titleDisplay := ""
 	if t := earnedTitle(p); t != "" {
 		titleDisplay = " " + iB + "[" + t + "]" + iB
@@ -3406,15 +3316,9 @@ func classFocusSlot(class string) int {
 }
 
 // effectiveItemSum returns the battle-relevant item total for p. The raw
-// itemSum is augmented by the focus-slot item level (counted an extra time)
-// for each class. Dual-classed players add two bonuses; if both classes share
-// the same focus slot the bonus stacks (that slot counts three times total).
+// itemSum is augmented by the focus-slot item level (counted an extra time).
 func effectiveItemSum(p *Player) int {
-	sum := p.itemSum() + p.Items[classFocusSlot(p.Class)]
-	if p.Class2 != "" {
-		sum += p.Items[classFocusSlot(p.Class2)]
-	}
-	return sum
+	return p.itemSum() + p.Items[classFocusSlot(p.Class)]
 }
 
 // fmtDuration formats a duration given in seconds as a human-readable string

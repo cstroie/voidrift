@@ -311,14 +311,6 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 			return
 		}
 		say(g.CmdReclass(src, fields[1]))
-	case "!reclass2":
-		if len(fields) < 2 {
-			reply("Usage: !reclass2 <class>  — one word, no spaces; costs p100")
-			return
-		}
-		say(g.CmdReclass2(src, fields[1]))
-	case "!dualclass":
-		dispatchDualClass(src, fields, g, reply)
 	case "!align":
 		dispatchAlign(src, fields, g, reply)
 	case "!status":
@@ -365,8 +357,7 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 const helpText = "Void Drift commands: " +
 	"!register <name> <pass> <class> [m|f|n] (no spaces in any field) | !suggest | " +
 	"!login <pass> | !logout | !passwd <oldpass> <newpass> | !gender <m|f|n> | " +
-	"!rename <name> | !reclass <class> | !reclass2 <class> | " +
-	"!dualclass <class> (level 12+, permanent) | " +
+	"!rename <name> | !reclass <class> | " +
 	"!align <good|neutral|evil> | " +
 	"!status [nick] | !whoami | !stats [nick] | !achievements [nick] | !top | !all | !online | !quest | !items [nick] | !pos [nick] | !map | " +
 	"!gcreate <name> | !ginvite <nick> | !gaccept | !gdecline | " +
@@ -408,16 +399,6 @@ func dispatchLogin(src string, fields []string, g *Game, reply func(string)) {
 		return
 	}
 	reply(g.CmdLogin(src, fields[1]))
-}
-
-// dispatchDualClass handles !dualclass <class>, where the class name may be
-// multiple words joined from all remaining fields.
-func dispatchDualClass(src string, fields []string, g *Game, reply func(string)) {
-	if len(fields) < 2 {
-		reply("Usage: !dualclass <class>")
-		return
-	}
-	reply(g.CmdDualClass(src, strings.Join(fields[1:], " ")))
 }
 
 // dispatchAlign handles !align <good|neutral|evil>.

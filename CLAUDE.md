@@ -57,8 +57,6 @@ Build and test with `go build ./...` and `go test ./...`.
 | `!gender <m/f/n>` | Change pronoun setting (costs p50) |
 | `!rename <name>` | Change character name (costs p100) |
 | `!reclass <class>` | Change primary class; focus slot shifts (costs p100) |
-| `!reclass2 <class>` | Change secondary class (requires prior !dualclass; costs p100) |
-| `!dualclass <class>` | Choose a second class at level 12+ (permanent) |
 | `!align <good\|neutral\|evil>` | Set alignment (costs p75 to change) |
 | `!status [nick]` | Level, TTL, alignment, class focus, title, quest status |
 | `!whoami` | Shortcut for your own status |
@@ -99,7 +97,7 @@ Build and test with `go build ./...` and `go test ./...`.
 ```
 Nick                  — IRC nick, used as map key and for auto-login (lowercase)
 Name                  — character display name chosen at registration (shown in all game messages)
-Class, Class2         — primary and optional second class (dual-classing at lvl 12)
+Class                 — character class, free-form text chosen at registration
 Gender                — "m"/"f"/"n"; controls pronoun substitution in event messages
 PassSalt, PassHash    — salted SHA-256 password
 Alignment             — int8: -1 evil, 0 neutral, 1 good
@@ -149,11 +147,9 @@ PenMesg/Nick/Part/Kick/Quit/Quest/Other — scaled penalty seconds by source
 
 ### effectiveItemSum
 ```
-effectiveItemSum(p) = itemSum() + Items[focus(Class)] [+ Items[focus(Class2)]]
+effectiveItemSum(p) = itemSum() + Items[focus(Class)]
 ```
 Focus slot derived via FNV-1a hash of the lowercase class name mod 10.
-Dual-classed players add both focus bonuses; same slot stacks (counts triple).
-
 ### Alignment
 | Alignment | Battle sum | Crit chance | Daily event |
 |-----------|-----------|-------------|-------------|

@@ -115,4 +115,3 @@ Formula: `base × 1.14^level` seconds added to TTL.
 - Critical hit system tied to alignment
 - Evil-player item theft (daily steal attempt against good players)
 - Dungeon/adventure system (Discord bot, grid-based)
-- Dual-classing at level 12

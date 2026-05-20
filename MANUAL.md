@@ -100,19 +100,6 @@ Use `!status` to see which slot your class focuses.
 **Item slots** (indices 0–9): `implant`, `beacon`, `module`, `weapon`, `visor`,
 `suit`, `gauntlets`, `plating`, `deflector`, `boots`.
 
-### Dual-Classing
-
-At level 12 or above:
-
-```
-!dualclass <class>
-```
-
-The class name must be a single word (no spaces), same as at registration.
-This permanently adds a second class. Both focus slots count double in battles.
-If both classes happen to focus the same slot, that slot counts **triple**.
-Dual-classing cannot be undone.
-
 ---
 
 ## Alignment
@@ -143,7 +130,7 @@ Every time you level up you challenge a random online opponent. Each side rolls
 `rand(0, effectiveItemSum)`. The higher roll wins.
 
 ```
-effectiveItemSum = sum of all item slots + Items[focus slot]  [+ Items[focus slot 2] if dual-classed]
+effectiveItemSum = sum of all item slots + Items[focus slot]
 ```
 
 - **Winner**: TTL reduced by `max(loser_level / 4, 7)%`
@@ -379,7 +366,6 @@ significant drop.
 !gender <m|f|n>                 — change pronoun setting (costs p50)
 !rename <name>                  — change your character's name (costs p100)
 !reclass <class>                — change your primary class (costs p100)
-!reclass2 <class>               — change your secondary class (costs p100; requires prior !dualclass)
 !logout                         — go offline without leaving the channel
 !online                         — list all currently online players
 !top                            — top 5 players by level
@@ -402,8 +388,6 @@ battle effectiveness.
   against well-geared opponents.
 - **Focus slot matters for gear priorities.** Check `!status` to learn your focus
   slot, then prioritise upgrading that slot — it counts double in every battle roll.
-- **Dual-class at 12 as soon as you can.** The second focus bonus is permanent and
-  compounds with every future item upgrade.
 - **Missions are opt-in by existing.** You cannot choose to join or leave; just be
   online, at level 15+, and you may be selected. Logging out avoids selection but
   costs p200.
