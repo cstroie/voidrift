@@ -1334,6 +1334,52 @@ func (g *Game) CmdLogout(src string) string {
 	return fmt.Sprintf("%s has disconnected from the Void Drift.", p.Name)
 }
 
+// CmdDelete permanently removes the calling player's account. Requires password
+// confirmation. Removes them from any guild (transferring leadership if needed)
+// and announces the deletion to the channel.
+func (g *Game) CmdDelete(src, pass string) string {
+	g.mu.Lock()
+	p := g.findByAddr(src)
+	if p == nil {
+		g.mu.Unlock()
+		return "You are not logged in."
+	}
+	if subtle.ConstantTimeCompare([]byte(p.PassHash), []byte(hashPass(p.PassSalt, pass))) != 1 {
+		g.mu.Unlock()
+		return "Wrong password."
+	}
+
+	nick := strings.ToLower(p.Nick)
+	name := p.Name
+
+	// Remove from guild, transferring leadership or disbanding if necessary.
+	guild := g.playerGuild(nick)
+	var guildMsg string
+	if guild != nil {
+		guildName := guild.Name
+		guildKey := strings.ToLower(strings.Join(strings.Fields(guildName), " "))
+		guild.removeMember(nick)
+		if len(guild.Members) == 0 {
+			delete(g.guilds, guildKey)
+			guildMsg = fmt.Sprintf(iB+"[%s]"+iB+" has been disbanded.", guildName)
+		} else if guild.Leader == nick {
+			guild.Leader = guild.Members[0]
+			guildMsg = fmt.Sprintf(iB+"[%s]"+iB+" command transfers to "+iB+cCyan+"%s"+iC+iB+".", guildName, guild.Leader)
+		}
+	}
+
+	delete(g.players, nick)
+	g.mu.Unlock()
+	g.save()
+	g.saveGuilds()
+
+	msg := fmt.Sprintf(iB+cCyan+"%s"+iC+iB+" has been erased from the Void Drift. The record is gone.", name)
+	if guildMsg != "" {
+		msg += " " + guildMsg
+	}
+	return msg
+}
+
 // CmdAlign sets the calling player's alignment. Changing alignment (not just
 // confirming the current one) costs a p75 penalty.
 func (g *Game) CmdAlign(src, align string) string {

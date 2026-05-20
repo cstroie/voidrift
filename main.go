@@ -287,6 +287,12 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 		dispatchLogin(src, fields, g, reply)
 	case "!logout":
 		reply(g.CmdLogout(src))
+	case "!delete":
+		if len(fields) < 2 {
+			reply("Usage: !delete <password>  — permanently deletes your account")
+			return
+		}
+		say(g.CmdDelete(src, fields[1]))
 	case "!passwd":
 		if len(fields) < 3 {
 			reply("Usage: !passwd <oldpass> <newpass>")
@@ -357,7 +363,7 @@ func dispatchCommand(src string, fields []string, g *Game, say, reply func(strin
 
 const helpTextAccount = "Account: " +
 	"!register <name> <pass> <class> [m|f|n] (no spaces in any field) | !suggest | " +
-	"!login <pass> | !logout | !passwd <old> <new> | !gender <m|f|n> | " +
+	"!login <pass> | !logout | !passwd <old> <new> | !delete <pass> | !gender <m|f|n> | " +
 	"!rename <name> | !reclass <class> | !align <good|neutral|evil>"
 
 const helpTextReports = "Reports: " +
