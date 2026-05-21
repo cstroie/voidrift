@@ -54,21 +54,25 @@ func applyEnv() {
 // main parses flags, constructs the IRC client and Game, registers all event
 // handlers, then runs the reconnect loop forever.
 func main() {
-	server      := flag.String("server",       "irc.libera.chat:6667", "IRC server host:port")
-	nick        := flag.String("nick",         "VoidKeeper",           "Bot nick")
-	serverPass  := flag.String("server-pass",  "",                     "IRC server password")
-	ssl         := flag.Bool("ssl",            false,                  "Use SSL/TLS")
-	noVerify    := flag.Bool("no-verify",      false,                  "Skip TLS certificate verification (insecure)")
-	channel     := flag.String("channel",      "#voidrift",            "Game channel")
-	dataFile    := flag.String("data",         "voidrift.json",        "Player data file")
-	guildsFile  := flag.String("guilds",       "guilds.json",          "Guild data file")
-	dev         := flag.Bool("dev",            false,                  "Dev mode: TTL ÷14, event rates ×10, weak creeps, easy quests, auto-login channel members")
-	nickservPass := flag.String("nickserv-pass", "",                   "NickServ password (sends IDENTIFY on connect)")
-	logFile     := flag.String("log",          "",                     "Append log output to this file (stdout always active)")
-	ratePlayer  := flag.Float64("rate-player", 1.0,                   "Per-player event rate multiplier (random events, bot battles; default 1.0 = ~1/day each)")
-	rateAlign   := flag.Float64("rate-align",  1.0,                   "Alignment event rate multiplier (good/evil daily events; default 1.0)")
-	rateServer  := flag.Float64("rate-server", 1.0,                   "Server event rate multiplier (team battles, guild battles, quests, Hand of God; default 1.0)")
-	showVersion := flag.Bool("version",        false,                  "Print version and exit")
+	// Connection
+	server       := flag.String("server",       "irc.libera.chat:6667", "IRC server host:port")
+	nick         := flag.String("nick",         "VoidKeeper",           "Bot nick")
+	serverPass   := flag.String("server-pass",  "",                     "IRC server password")
+	nickservPass := flag.String("nickserv-pass", "",                    "NickServ password (sends IDENTIFY on connect)")
+	ssl          := flag.Bool("ssl",            false,                  "Use SSL/TLS")
+	noVerify     := flag.Bool("no-verify",      false,                  "Skip TLS certificate verification (insecure)")
+	// Game
+	channel    := flag.String("channel", "#voidrift",     "Game channel")
+	dataFile   := flag.String("data",    "voidrift.json", "Player data file")
+	guildsFile := flag.String("guilds",  "guilds.json",   "Guild data file")
+	// Tuning
+	dev        := flag.Bool("dev",          false, "Dev mode: TTL ÷14, event rates ×10, weak creeps, easy quests, auto-login channel members")
+	ratePlayer := flag.Float64("rate-player", 1.0, "Per-player event rate multiplier (random events, bot battles; default 1.0 = ~1/day each)")
+	rateAlign  := flag.Float64("rate-align",  1.0, "Alignment event rate multiplier (good/evil daily events; default 1.0)")
+	rateServer := flag.Float64("rate-server", 1.0, "Server event rate multiplier (team battles, guild battles, quests, Hand of God; default 1.0)")
+	// Extra
+	logFile     := flag.String("log",     "", "Append log output to this file (stdout always active)")
+	showVersion := flag.Bool("version", false, "Print version and exit")
 	applyEnv()
 	flag.Parse()
 

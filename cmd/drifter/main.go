@@ -180,17 +180,20 @@ func stripIRC(s string) string {
 }
 
 func main() {
-	server       := flag.String("server",        "irc.libera.chat:6667", "IRC server host:port")
-	nick         := flag.String("nick",          "",           "IRC nick (required)")
-	gamePass     := flag.String("game-pass",     "",           "Game password for !login (required)")
-	channel      := flag.String("channel",       "#voidrift",  "Channel to join")
-	ssl          := flag.Bool("ssl",             false,        "Use SSL")
-	serverPass   := flag.String("server-pass",   "",           "IRC server password")
-	nickservPass := flag.String("nickserv-pass",  "",          "NickServ IDENTIFY password")
-	botNick      := flag.String("bot",           "VoidKeeper", "Bot nick to send !login to")
-	logFile      := flag.String("log",           "",           "Log file path (appended; empty = stdout only)")
-	noVerify     := flag.Bool("no-verify",       false,        "Skip TLS certificate verification (insecure)")
-	showVersion  := flag.Bool("version",         false,        "Print version and exit")
+	// Connection
+	server       := flag.String("server",       "irc.libera.chat:6667", "IRC server host:port")
+	nick         := flag.String("nick",         "",           "IRC nick (required)")
+	serverPass   := flag.String("server-pass",  "",           "IRC server password")
+	nickservPass := flag.String("nickserv-pass", "",           "NickServ IDENTIFY password")
+	ssl          := flag.Bool("ssl",            false,        "Use SSL/TLS")
+	noVerify     := flag.Bool("no-verify",      false,        "Skip TLS certificate verification (insecure)")
+	// Game
+	channel  := flag.String("channel",   "#voidrift",  "Channel to join")
+	botNick  := flag.String("bot",       "VoidKeeper", "Bot nick to send !login to")
+	gamePass := flag.String("game-pass", "",           "Game password for !login (required)")
+	// Extra
+	logFile     := flag.String("log",     "", "Log file path (appended; empty = stdout only)")
+	showVersion := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
 
 	if *showVersion {

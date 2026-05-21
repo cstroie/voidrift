@@ -57,20 +57,24 @@ order: **flag > env var > compiled-in default**.
 
 | Flag | Env var | Default | Description |
 |------|---------|---------|-------------|
+| **Connection** |
 | `-server` | `VOIDRIFT_SERVER` | `irc.libera.chat:6667` | IRC server `host:port` |
 | `-nick` | `VOIDRIFT_NICK` | `VoidKeeper` | Bot nick |
 | `-server-pass` | `VOIDRIFT_SERVER_PASS` | _(none)_ | IRC server password |
+| `-nickserv-pass` | `VOIDRIFT_NICKSERV_PASS` | _(none)_ | NickServ password — sends `IDENTIFY` on connect |
 | `-ssl` | `VOIDRIFT_SSL` | `false` | Use SSL/TLS |
 | `-no-verify` | `VOIDRIFT_NO_VERIFY` | `false` | Skip TLS certificate verification (insecure) |
+| **Game** |
 | `-channel` | `VOIDRIFT_CHANNEL` | `#voidrift` | Game channel |
 | `-data` | `VOIDRIFT_DATA` | `voidrift.json` | Player data file (created automatically) |
 | `-guilds` | `VOIDRIFT_GUILDS` | `guilds.json` | Guild data file (created automatically) |
-| `-nickserv-pass` | `VOIDRIFT_NICKSERV_PASS` | _(none)_ | NickServ password — sends `IDENTIFY` on connect |
-| `-log` | `VOIDRIFT_LOG` | _(none)_ | Append log output to this file (stdout always active) |
+| **Tuning** |
 | `-dev` | `VOIDRIFT_DEV` | `false` | Dev mode: auto-login channel members on startup, TTL 14× faster, event rates ×10, creep levels capped at 10, quests require only 1 player at level 0+ |
 | `-rate-player` | `VOIDRIFT_RATE_PLAYER` | `1.0` | Per-player event rate multiplier — scales random events and bot battles |
 | `-rate-align` | `VOIDRIFT_RATE_ALIGN` | `1.0` | Alignment event rate multiplier — scales good/evil daily events |
 | `-rate-server` | `VOIDRIFT_RATE_SERVER` | `1.0` | Server event rate multiplier — scales team/guild battles, quests, Hand of God |
+| **Extra** |
+| `-log` | `VOIDRIFT_LOG` | _(none)_ | Append log output to this file (stdout always active) |
 | `-version` | — | `false` | Print version and exit |
 
 ### Env file
@@ -134,16 +138,19 @@ go build ./cmd/drifter
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-nick` | _(required)_ | IRC nick |
-| `-game-pass` | _(required)_ | Game password for `!login` |
-| `-channel` | `#voidrift` | Channel to join |
+| **Connection** |
 | `-server` | `irc.libera.chat:6667` | IRC server `host:port` |
-| `-ssl` | `false` | Use SSL/TLS |
-| `-bot` | `VoidKeeper` | Bot nick to DM `!login` to |
+| `-nick` | _(required)_ | IRC nick |
 | `-server-pass` | _(none)_ | IRC server password |
 | `-nickserv-pass` | _(none)_ | NickServ IDENTIFY password |
-| `-log` | _(none)_ | Append messages to this file (stdout always active) |
+| `-ssl` | `false` | Use SSL/TLS |
 | `-no-verify` | `false` | Skip TLS certificate verification (insecure) |
+| **Game** |
+| `-channel` | `#voidrift` | Channel to join |
+| `-bot` | `VoidKeeper` | Bot nick to DM `!login` to |
+| `-game-pass` | _(required)_ | Game password for `!login` |
+| **Extra** |
+| `-log` | _(none)_ | Append messages to this file (stdout always active) |
 | `-version` | `false` | Print version and exit |
 
 `drifter` reconnects automatically after a 10-second delay on disconnect.

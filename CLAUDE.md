@@ -18,20 +18,24 @@ All flags:
 
 | Flag | Default | Description |
 |------|---------|-------------|
+| **Connection** |
 | `-server` | `irc.libera.chat:6667` | IRC server `host:port` |
 | `-nick` | `VoidKeeper` | Bot nick |
 | `-server-pass` | _(none)_ | IRC server password |
+| `-nickserv-pass` | _(none)_ | NickServ password; sends `IDENTIFY` on connect |
 | `-ssl` | `false` | Use SSL/TLS |
 | `-no-verify` | `false` | Skip TLS certificate verification (insecure) |
+| **Game** |
 | `-channel` | `#voidrift` | Game channel |
 | `-data` | `voidrift.json` | Player data file |
 | `-guilds` | `guilds.json` | Guild data file |
-| `-nickserv-pass` | _(none)_ | NickServ password; sends `IDENTIFY` on connect |
-| `-log` | _(none)_ | Append log output to this file (stdout always active) |
+| **Tuning** |
 | `-dev` | `false` | Dev mode: TTL ÷14, event rates ×10, weak creeps, easy quests, auto-login channel members |
 | `-rate-player` | `1.0` | Per-player event multiplier (random events, bot battles) |
 | `-rate-align` | `1.0` | Alignment event multiplier (good/evil daily events) |
 | `-rate-server` | `1.0` | Server event multiplier (team battles, guild battles, quests, Hand of God) |
+| **Extra** |
+| `-log` | _(none)_ | Append log output to this file (stdout always active) |
 | `-version` | `false` | Print version and exit |
 
 ### drifter
@@ -46,16 +50,19 @@ go build ./cmd/drifter
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-nick` | _(required)_ | IRC nick |
-| `-game-pass` | _(required)_ | Game password sent via DM to the bot |
-| `-bot` | `VoidKeeper` | Bot nick to DM `!login` to |
-| `-channel` | `#voidrift` | Channel to join |
+| **Connection** |
 | `-server` | `irc.libera.chat:6667` | IRC server `host:port` |
-| `-ssl` | `false` | Use SSL |
+| `-nick` | _(required)_ | IRC nick |
 | `-server-pass` | _(none)_ | IRC server password |
 | `-nickserv-pass` | _(none)_ | NickServ IDENTIFY password |
-| `-log` | _(none)_ | Append plain-text messages to this file (stdout always active with ANSI colours) |
+| `-ssl` | `false` | Use SSL/TLS |
 | `-no-verify` | `false` | Skip TLS certificate verification (insecure) |
+| **Game** |
+| `-channel` | `#voidrift` | Channel to join |
+| `-bot` | `VoidKeeper` | Bot nick to DM `!login` to |
+| `-game-pass` | _(required)_ | Game password sent via DM to the bot |
+| **Extra** |
+| `-log` | _(none)_ | Append plain-text messages to this file (stdout always active with ANSI colours) |
 | `-version` | `false` | Print version and exit |
 
 **Behaviour:**
