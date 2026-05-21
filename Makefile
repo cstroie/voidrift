@@ -15,7 +15,7 @@ ENVDIR   := /etc/voidrift
 all: build
 
 build:
-	go build $(LDFLAGS) -o $(BINARY) .
+	go build $(LDFLAGS) -o $(BINARY) ./cmd/voidrift
 
 test:
 	go test ./...
