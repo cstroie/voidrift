@@ -2771,10 +2771,13 @@ func (g *Game) randomEvent(p *Player) string {
 		slotName := itemSlots[slot]
 		itemName := generateItemName(rarityNormal, slotName)
 		currentName := p.ItemNames[slot]
+		var currentLabel string
 		if currentName == "" {
-			currentName = p.their() + " " + slotName
+			currentLabel = p.their() + " " + slotName
+		} else {
+			currentLabel = p.their() + " " + currentName
 		}
-		equipped := "but it's worse than " + currentName
+		equipped := "but it's worse than " + currentLabel
 		if found > p.Items[slot] {
 			p.Items[slot] = found
 			p.ItemNames[slot] = itemName
