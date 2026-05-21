@@ -21,7 +21,7 @@
       location-based 1v1 encounters when two players share a tile.
 - [x] **Class bonuses** — focus slot derived from class name via FNV-1a hash;
       that slot counts double in all battle rolls.
-- [ ] **Manpages** - Add manpages for the two binaries. Update also the Makefile to 
+- [x] **Manpages** - Add manpages for the two binaries. Update also the Makefile to 
       install them.
 - [x] **Version** - Add version number in 'drifter'. too.
 

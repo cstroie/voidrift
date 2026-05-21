@@ -8,6 +8,7 @@ VERSION  := $(shell date +%y%m%d)
 LDFLAGS  := -ldflags "-X main.version=$(VERSION)"
 
 PREFIX   ?= /usr/local
+MANDIR   ?= $(PREFIX)/share/man
 DATADIR  := /var/lib/voidrift
 ENVDIR   := /etc/voidrift
 
@@ -25,6 +26,8 @@ test:
 clean:
 	rm -f $(VOIDRIFT) $(DRIFTER)
 
+man: man/man1/voidrift.1 man/man1/drifter.1
+
 run: build
 	./$(VOIDRIFT) -server $(SERVER) -nick $(NICK) -channel "$(CHANNEL)"
 
@@ -39,6 +42,11 @@ install: build
 	@echo "==> Installing $(VOIDRIFT) to $(PREFIX)/bin/$(VOIDRIFT)"
 	install -dm755 $(PREFIX)/bin
 	install -m755 $(VOIDRIFT) $(PREFIX)/bin/$(VOIDRIFT)
+	install -m755 $(DRIFTER) $(PREFIX)/bin/$(DRIFTER)
+	@echo "==> Installing man pages to $(MANDIR)/man1"
+	install -dm755 $(MANDIR)/man1
+	install -m644 man/man1/voidrift.1 $(MANDIR)/man1/voidrift.1
+	install -m644 man/man1/drifter.1 $(MANDIR)/man1/drifter.1
 	@echo "==> Creating data directory $(DATADIR)"
 	install -dm755 $(DATADIR)
 	@echo "==> Installing env-file template to $(ENVDIR)/$(VOIDRIFT).env.example"
@@ -82,5 +90,6 @@ uninstall:
 		rm -f /etc/systemd/system/$(VOIDRIFT).service; \
 		systemctl daemon-reload; \
 	fi
-	rm -f $(PREFIX)/bin/$(VOIDRIFT)
+	rm -f $(PREFIX)/bin/$(VOIDRIFT) $(PREFIX)/bin/$(DRIFTER)
+	rm -f $(MANDIR)/man1/voidrift.1 $(MANDIR)/man1/drifter.1
 	@echo "==> $(VOIDRIFT) uninstalled. Data in $(DATADIR) and config in $(ENVDIR) were preserved."

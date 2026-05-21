@@ -1,0 +1,135 @@
+.TH DRIFTER 1 "2026-05-21" "Void Drift" "User Commands"
+.SH NAME
+drifter \- minimal idle IRC client for the Void Drift game
+.SH SYNOPSIS
+.B drifter
+.B \-nick
+.I nick
+.B \-game\-pass
+.I password
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B drifter
+is a companion program to
+.BR voidrift (1).
+It connects to an IRC server, joins the game channel, authenticates
+with the game bot via \fB!login\fR, and then idles indefinitely \[em]
+earning levels without any further interaction.
+.PP
+All channel messages are printed to standard output with ANSI colour
+formatting derived from the IRC codes sent by the bot.
+If a log file is specified with \fB\-log\fR, plain stripped text is
+appended to it in addition to the coloured stdout output.
+.PP
+.B drifter
+verifies the game bot is present in the channel before sending
+\fB!login\fR, and confirms the login succeeded by watching for the
+bot\[aq]s channel announcement and by sending \fB!whoami\fR shortly
+after.
+If the bot restarts and rejoins the channel,
+.B drifter
+automatically re-authenticates after a short random delay.
+.PP
+On receiving SIGINT or SIGTERM,
+.B drifter
+sends \fB!logout\fR to the bot before disconnecting, avoiding the quit
+penalty.
+On unclean disconnects (network drop) it reconnects automatically after
+10 seconds.
+.SH OPTIONS
+.TP
+.BI \-nick " nick"
+IRC nick to use.
+.B Required.
+.TP
+.BI \-game\-pass " password"
+Game password sent to the bot via private message as \fB!login\fR.
+.B Required.
+.TP
+.BI \-bot " nick"
+Nick of the game bot to send \fB!login\fR and \fB!logout\fR to.
+Default: \fBVoidKeeper\fR.
+.TP
+.BI \-channel " channel"
+IRC channel to join.
+Default: \fB#voidrift\fR.
+.TP
+.BI \-server " host:port"
+IRC server to connect to.
+Default: \fBirc.libera.chat:6667\fR.
+.TP
+.B \-ssl
+Use SSL/TLS for the IRC connection.
+Default: false.
+.TP
+.BI \-server\-pass " password"
+IRC server password (PASS command).
+Default: none.
+.TP
+.BI \-nickserv\-pass " password"
+NickServ password; sends \fBIDENTIFY\fR on connect.
+Default: none.
+.TP
+.BI \-log " file"
+Append plain-text (IRC codes stripped) messages to this file.
+Standard output always receives the ANSI-coloured version.
+Default: none.
+.TP
+.B \-version
+Print version and exit.
+.SH SIGNALS
+.TP
+.B SIGINT, SIGTERM
+Send \fB!logout\fR to the game bot, then exit cleanly.
+This avoids the quit penalty that would otherwise be applied on
+disconnect.
+.SH DIAGNOSTICS
+.B drifter
+logs status messages to standard output with timestamps.
+Notable messages:
+.TP
+.B "WARNING: bot <nick> not found in <channel>"
+The game bot was not in the channel when \fB!login\fR was about to be
+sent.
+\fBdrifter\fR will retry automatically on the next JOIN event.
+.TP
+.B "WARNING: no !login reply from <bot> after 10s"
+The bot did not acknowledge the login within 10 seconds.
+.TP
+.B "WARNING: login failed: <reply>"
+The bot rejected the login (wrong password, nick not registered, etc.).
+.TP
+.B "WARNING: bot <nick> left/quit <channel>"
+The game bot left the channel or disconnected.
+\fBdrifter\fR will re-authenticate automatically when the bot returns.
+.SH EXAMPLES
+Basic usage:
+.PP
+.RS
+.EX
+drifter \-nick MyChar \-game\-pass s3cr3t
+.EE
+.RE
+.PP
+With a log file and NickServ authentication:
+.PP
+.RS
+.EX
+drifter \-nick MyChar \-game\-pass s3cr3t \\
+        \-nickserv\-pass nspass \-log ~/voidrift\-MyChar.log
+.EE
+.RE
+.PP
+Against a local test server:
+.PP
+.RS
+.EX
+drifter \-nick MyChar \-game\-pass s3cr3t \-server localhost:6667
+.EE
+.RE
+.SH SEE ALSO
+.BR voidrift (1)
+.SH AUTHOR
+Costin Stroie <costinstroie@eridu.eu.org>
+.PP
+Source code: https://github.com/cstroie/voidrift

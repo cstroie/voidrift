@@ -1,0 +1,134 @@
+.TH VOIDRIFT 1 "2026-05-21" "Void Drift" "User Commands"
+.SH NAME
+voidrift \- IRC idle RPG bot (Void Drift game server)
+.SH SYNOPSIS
+.B voidrift
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.B voidrift
+is a standalone IRC bot implementing the Void Drift idle RPG.
+Players register a character, choose a class and alignment, and gain
+levels simply by idling in the channel.
+Talking, changing nick, parting, quitting, or getting kicked adds
+penalty time.
+Characters battle each other on level-up, find salvaged artefacts,
+join guilds, go on quests, and roam a 500\[tmu]500 grid \[em] all
+without lifting a finger.
+.PP
+Player data is persisted automatically to a JSON file after every
+state change.
+Guild data is stored in a separate file.
+.SH OPTIONS
+.TP
+.BI \-server " host:port"
+IRC server to connect to.
+Default: \fBirc.libera.chat:6667\fR.
+.TP
+.BI \-nick " nick"
+Bot IRC nick.
+Default: \fBVoidKeeper\fR.
+.TP
+.BI \-password " password"
+IRC server password (PASS command).
+Default: none.
+.TP
+.B \-ssl
+Use SSL/TLS for the IRC connection.
+Default: false.
+.TP
+.BI \-channel " channel"
+IRC channel to join and run the game in.
+Default: \fB#voidrift\fR.
+.TP
+.BI \-data " file"
+Path to the player data JSON file (created automatically if absent).
+Default: \fBvoidrift.json\fR.
+.TP
+.BI \-guilds " file"
+Path to the guild data JSON file (created automatically if absent).
+Default: \fBguilds.json\fR.
+.TP
+.BI \-nickserv " password"
+NickServ password; sends \fBIDENTIFY\fR on connect.
+Default: none.
+.TP
+.BI \-chanserv " nick"
+ChanServ nick to request ops from on channel join.
+Set to empty string to disable.
+Default: \fBChanServ\fR.
+.TP
+.B \-dev
+Developer mode: TTL \[di]14, event rates \[mu]10, creep levels capped
+at 10, quests require only 1 player at level 0+, existing channel
+members are auto-logged in on connect.
+Default: false.
+.TP
+.BI \-rate\-player " multiplier"
+Per-player event rate multiplier; scales random events and bot battles.
+Default: \fB1.0\fR.
+.TP
+.BI \-rate\-align " multiplier"
+Alignment event rate multiplier; scales good/evil daily events.
+Default: \fB1.0\fR.
+.TP
+.BI \-rate\-server " multiplier"
+Server event rate multiplier; scales team/guild battles, quests, and
+Hand of God events.
+Default: \fB1.0\fR.
+.SH ENVIRONMENT
+All flags can also be set via environment variables.
+The priority order is: flag > environment variable > compiled-in default.
+.TS
+l l.
+\fBVOIDRIFT_SERVER\fR	IRC server host:port
+\fBVOIDRIFT_NICK\fR	Bot nick
+\fBVOIDRIFT_PASSWORD\fR	Server password
+\fBVOIDRIFT_SSL\fR	Use SSL (true/false)
+\fBVOIDRIFT_CHANNEL\fR	Game channel
+\fBVOIDRIFT_DATA\fR	Player data file
+\fBVOIDRIFT_GUILDS\fR	Guild data file
+\fBVOIDRIFT_NICKSERV\fR	NickServ password
+\fBVOIDRIFT_CHANSERV\fR	ChanServ nick
+\fBVOIDRIFT_DEV\fR	Dev mode
+\fBVOIDRIFT_RATE_PLAYER\fR	Per-player event multiplier
+\fBVOIDRIFT_RATE_ALIGN\fR	Alignment event multiplier
+\fBVOIDRIFT_RATE_SERVER\fR	Server event multiplier
+.TE
+.PP
+For service deployments, variables can be placed in
+.IR /etc/voidrift/voidrift.env .
+See
+.I /etc/voidrift/voidrift.env.example
+for a template.
+.SH FILES
+.TP
+.I voidrift.json
+Player data (default location; override with \fB\-data\fR).
+.TP
+.I guilds.json
+Guild data (default location; override with \fB\-guilds\fR).
+.TP
+.I /etc/voidrift/voidrift.env
+Optional environment file for service deployments.
+.SH EXAMPLES
+Run with defaults against Libera Chat:
+.PP
+.RS
+.EX
+voidrift \-nick VoidKeeper \-channel "#voidrift"
+.EE
+.RE
+.PP
+Run in developer mode with faster events:
+.PP
+.RS
+.EX
+voidrift \-dev \-rate\-player 100 \-rate\-server 100
+.EE
+.RE
+.SH SEE ALSO
+.BR drifter (1)
+.SH AUTHOR
+Costin Stroie <costinstroie@eridu.eu.org>
+.PP
+Source code: https://github.com/cstroie/voidrift
