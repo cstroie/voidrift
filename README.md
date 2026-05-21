@@ -116,6 +116,31 @@ and pick the appropriate init file from the `init/` directory. The systemd
 unit runs the bot as the `voidrift` user with `WorkingDirectory=/var/lib/voidrift`;
 the OpenRC script does the same via `command_user` and `directory`.
 
+## drifter — idle client
+
+`drifter` is a companion binary in this repo: a minimal IRC client that connects
+to the server, joins the channel, sends `!login`, and idles — no interaction
+required. All channel messages are printed to stdout.
+
+```bash
+go build ./cmd/drifter
+./drifter -nick MyChar -game-pass s3cr3t
+./drifter -nick MyChar -game-pass s3cr3t -log voidrift-MyChar.log
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-nick` | _(required)_ | IRC nick |
+| `-game-pass` | _(required)_ | Game password for `!login` |
+| `-channel` | `#voidrift` | Channel to join |
+| `-server` | `irc.libera.chat:6667` | IRC server `host:port` |
+| `-ssl` | `false` | Use SSL/TLS |
+| `-server-pass` | _(none)_ | IRC server password |
+| `-nickserv-pass` | _(none)_ | NickServ IDENTIFY password |
+| `-log` | _(none)_ | Append messages to this file (stdout always active) |
+
+`drifter` reconnects automatically after a 10-second delay on disconnect.
+
 ## Contributing
 
 Bug reports and pull requests are welcome. Please:
