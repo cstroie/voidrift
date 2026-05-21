@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	mathrand "math/rand"
 	"os"
 	"os/signal"
 	"regexp"
@@ -343,7 +344,24 @@ func main() {
 	// Bot joins or parts — log for visibility.
 	conn.HandleFunc("JOIN", func(c *irc.Conn, line *irc.Line) {
 		if strings.EqualFold(line.Nick, *botNick) && strings.EqualFold(line.Args[0], *channel) {
-			logger.Printf("Bot %s joined %s", *botNick, *channel)
+			logger.Printf("Bot %s joined %s — will re-login shortly", *botNick, *channel)
+			loginSent = false
+			delay := time.Duration(3+mathrand.Intn(8)) * time.Second
+			go func() {
+				time.Sleep(delay)
+				loginSent = true
+				loginAck = make(chan struct{}, 1)
+				ack := loginAck
+				logger.Printf("Sending !login to %s after bot rejoin", *botNick)
+				c.Privmsg(*botNick, "!login "+*gamePass)
+				go func() {
+					select {
+					case <-ack:
+					case <-time.After(10 * time.Second):
+						logger.Printf("WARNING: no !login reply from %s after 10s", *botNick)
+					}
+				}()
+			}()
 		}
 	})
 	conn.HandleFunc("PART", func(c *irc.Conn, line *irc.Line) {
