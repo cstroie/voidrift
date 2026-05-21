@@ -190,10 +190,18 @@ func registerHandlers(conn *irc.Conn, game *Game, say func(string), connected ch
 	*resetWHO = registerWHOHandlers(conn, game, botNick, dev)
 
 	conn.HandleFunc("JOIN", func(c *irc.Conn, line *irc.Line) {
-		if len(line.Args) == 0 || !strings.EqualFold(line.Args[0], channel) {
+		if len(line.Args) == 0 {
 			return
 		}
+		joinedChannel := line.Args[0]
 		joiningNick := extractNick(line.Src)
+		if joiningNick == botNick && !strings.EqualFold(joinedChannel, channel) {
+			c.Part(joinedChannel, "I only idle in "+channel)
+			return
+		}
+		if !strings.EqualFold(joinedChannel, channel) {
+			return
+		}
 		if joiningNick == botNick {
 			namesInChannel = nil
 			opRequested = false
