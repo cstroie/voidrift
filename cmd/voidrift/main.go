@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -24,14 +25,16 @@ import (
 var envFlags = map[string]string{
 	"VOIDRIFT_SERVER":      "server",
 	"VOIDRIFT_NICK":        "nick",
-	"VOIDRIFT_PASSWORD":    "password",
+	"VOIDRIFT_SERVER_PASS": "server-pass",
 	"VOIDRIFT_SSL":         "ssl",
+	"VOIDRIFT_NO_VERIFY":   "no-verify",
 	"VOIDRIFT_CHANNEL":     "channel",
 	"VOIDRIFT_DATA":        "data",
 	"VOIDRIFT_GUILDS":      "guilds",
 	"VOIDRIFT_DEV":         "dev",
-	"VOIDRIFT_NICKSERV":    "nickserv",
+	"VOIDRIFT_NICKSERV":    "nickserv-pass",
 	"VOIDRIFT_CHANSERV":    "chanserv",
+	"VOIDRIFT_LOG":         "log",
 	"VOIDRIFT_RATE_PLAYER": "rate-player",
 	"VOIDRIFT_RATE_ALIGN":  "rate-align",
 	"VOIDRIFT_RATE_SERVER": "rate-server",
@@ -52,30 +55,47 @@ func applyEnv() {
 // main parses flags, constructs the IRC client and Game, registers all event
 // handlers, then runs the reconnect loop forever.
 func main() {
-	server := flag.String("server", "irc.libera.chat:6667", "IRC server host:port")
-	nick := flag.String("nick", "VoidKeeper", "Bot nick")
-	password := flag.String("password", "", "Server password")
-	ssl := flag.Bool("ssl", false, "Use SSL")
-	channel := flag.String("channel", "#voidrift", "Game channel")
-	dataFile := flag.String("data", "voidrift.json", "Player data file")
-	guildsFile := flag.String("guilds", "guilds.json", "Guild data file")
-	dev := flag.Bool("dev", false, "Dev mode: auto-login channel members on startup and speed up TTL by 5×")
-	nickservPass := flag.String("nickserv", "", "NickServ password (sends IDENTIFY on connect)")
-	chanserv := flag.String("chanserv", "ChanServ", "ChanServ nick to request ops from on channel join (set empty to disable)")
-	ratePlayer := flag.Float64("rate-player", 1.0, "Per-player event rate multiplier (random events, bot battles; default 1.0 = ~1/day each)")
-	rateAlign := flag.Float64("rate-align", 1.0, "Alignment event rate multiplier (good/evil daily events; default 1.0)")
-	rateServer := flag.Float64("rate-server", 1.0, "Server event rate multiplier (team battles, guild battles, quests, Hand of God; default 1.0)")
+	server      := flag.String("server",       "irc.libera.chat:6667", "IRC server host:port")
+	nick        := flag.String("nick",         "VoidKeeper",           "Bot nick")
+	serverPass  := flag.String("server-pass",  "",                     "IRC server password")
+	ssl         := flag.Bool("ssl",            false,                  "Use SSL/TLS")
+	noVerify    := flag.Bool("no-verify",      false,                  "Skip TLS certificate verification (insecure)")
+	channel     := flag.String("channel",      "#voidrift",            "Game channel")
+	dataFile    := flag.String("data",         "voidrift.json",        "Player data file")
+	guildsFile  := flag.String("guilds",       "guilds.json",          "Guild data file")
+	dev         := flag.Bool("dev",            false,                  "Dev mode: TTL ÷14, event rates ×10, weak creeps, easy quests, auto-login channel members")
+	nickservPass := flag.String("nickserv-pass", "",                   "NickServ password (sends IDENTIFY on connect)")
+	chanserv    := flag.String("chanserv",     "ChanServ",             "ChanServ nick to request ops from on channel join (set empty to disable)")
+	logFile     := flag.String("log",          "",                     "Append log output to this file (stdout always active)")
+	ratePlayer  := flag.Float64("rate-player", 1.0,                   "Per-player event rate multiplier (random events, bot battles; default 1.0 = ~1/day each)")
+	rateAlign   := flag.Float64("rate-align",  1.0,                   "Alignment event rate multiplier (good/evil daily events; default 1.0)")
+	rateServer  := flag.Float64("rate-server", 1.0,                   "Server event rate multiplier (team battles, guild battles, quests, Hand of God; default 1.0)")
+	showVersion := flag.Bool("version",        false,                  "Print version and exit")
 	applyEnv()
 	flag.Parse()
 
-	cfg := irc.NewConfig(*nick, "voidrift", "Void Drift bot")
+	if *showVersion {
+		fmt.Println("voidrift", version)
+		os.Exit(0)
+	}
+
+	if *logFile != "" {
+		f, err := os.OpenFile(*logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("voidrift: cannot open log file: %v", err)
+		}
+		defer f.Close()
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
+	}
+
+	cfg := irc.NewConfig(*nick, "voidrift", "Void Drift bot "+version)
 	cfg.SSL = *ssl
 	cfg.Server = *server
 	if *ssl {
 		host, _, _ := net.SplitHostPort(*server)
-		cfg.SSLConfig = &tls.Config{ServerName: host}
+		cfg.SSLConfig = &tls.Config{ServerName: host, InsecureSkipVerify: *noVerify}
 	}
-	cfg.Pass = *password
+	cfg.Pass = *serverPass
 	// Append "_" when the preferred nick is already taken rather than failing.
 	cfg.NewNick = func(n string) string { return n + "_" }
 	conn := irc.Client(cfg)

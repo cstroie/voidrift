@@ -20,17 +20,20 @@ All flags:
 |------|---------|-------------|
 | `-server` | `irc.libera.chat:6667` | IRC server `host:port` |
 | `-nick` | `VoidKeeper` | Bot nick |
-| `-password` | _(none)_ | Server password |
-| `-ssl` | `false` | Use SSL |
+| `-server-pass` | _(none)_ | IRC server password |
+| `-ssl` | `false` | Use SSL/TLS |
+| `-no-verify` | `false` | Skip TLS certificate verification (insecure) |
 | `-channel` | `#voidrift` | Game channel |
 | `-data` | `voidrift.json` | Player data file |
 | `-guilds` | `guilds.json` | Guild data file |
-| `-dev` | `false` | Dev mode: TTL ÷14, event rates ×10, weak creeps, easy quests, auto-login channel members |
-| `-nickserv` | _(none)_ | NickServ password; sends `IDENTIFY` on connect |
+| `-nickserv-pass` | _(none)_ | NickServ password; sends `IDENTIFY` on connect |
 | `-chanserv` | `ChanServ` | ChanServ nick to request ops from on channel join (set empty to disable) |
+| `-log` | _(none)_ | Append log output to this file (stdout always active) |
+| `-dev` | `false` | Dev mode: TTL ÷14, event rates ×10, weak creeps, easy quests, auto-login channel members |
 | `-rate-player` | `1.0` | Per-player event multiplier (random events, bot battles) |
 | `-rate-align` | `1.0` | Alignment event multiplier (good/evil daily events) |
 | `-rate-server` | `1.0` | Server event multiplier (team battles, guild battles, quests, Hand of God) |
+| `-version` | `false` | Print version and exit |
 
 ### drifter
 
