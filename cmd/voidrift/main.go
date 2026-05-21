@@ -183,12 +183,9 @@ func registerHandlers(conn *irc.Conn, game *Game, say func(string), connected ch
 		}
 		c.Join(channel)
 		game.start()
-		// In dev mode, issue WHO immediately so existing channel members are
-		// auto-logged in without having to re-join.
-		if dev {
-			(*resetWHO)()
-			c.Who(channel)
-		}
+		// Issue WHO so existing channel members are auto-logged in on connect.
+		(*resetWHO)()
+		c.Who(channel)
 	})
 
 	*resetWHO = registerWHOHandlers(conn, game, botNick, dev)
@@ -301,8 +298,8 @@ func registerHandlers(conn *irc.Conn, game *Game, say func(string), connected ch
 }
 
 // registerWHOHandlers wires up the WHO reply (numeric 352) and end-of-WHO
-// (numeric 315) handlers used in dev mode to auto-login all players that are
-// already in the channel when the bot connects.
+// (numeric 315) handlers to auto-login registered players already in the
+// channel when the bot connects.
 //
 // whoQueue accumulates nick!user@host strings from 352 replies and is flushed
 // into [Game.OnJoin] calls when 315 signals the end of the WHO list.
@@ -311,7 +308,7 @@ func registerWHOHandlers(conn *irc.Conn, game *Game, botNick string, dev bool) f
 	reset := func() { whoQueue = nil }
 	conn.HandleFunc("352", func(c *irc.Conn, line *irc.Line) {
 		// Args layout: [botnick, #channel, user, host, server, nick, flags, ...]
-		if !dev || len(line.Args) < 6 {
+		if len(line.Args) < 6 {
 			return
 		}
 		memberNick := line.Args[5]
@@ -321,9 +318,6 @@ func registerWHOHandlers(conn *irc.Conn, game *Game, botNick string, dev bool) f
 		whoQueue = append(whoQueue, fmt.Sprintf("%s!%s@%s", memberNick, line.Args[2], line.Args[3]))
 	})
 	conn.HandleFunc("315", func(c *irc.Conn, line *irc.Line) {
-		if !dev {
-			return
-		}
 		queue := whoQueue
 		whoQueue = nil
 		log.Printf("Auto-login: %d channel member(s) found", len(queue))
