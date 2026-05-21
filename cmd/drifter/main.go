@@ -43,31 +43,76 @@ var ircToANSI = [16]string{
 const ansiReset = "\x1b[0m"
 
 // toANSI converts IRC formatting codes to ANSI escape sequences.
+// IRC codes are toggles, so state is tracked and re-emitted after each change.
 func toANSI(s string) string {
+	type state struct {
+		bold, italic, underline, strike, reverse bool
+		fg, bg                                   int // -1 = unset
+	}
+	cur := state{fg: -1, bg: -1}
+
+	emit := func(b *strings.Builder, st state) {
+		b.WriteString(ansiReset)
+		if st.bold {
+			b.WriteString("\x1b[1m")
+		}
+		if st.italic {
+			b.WriteString("\x1b[3m")
+		}
+		if st.underline {
+			b.WriteString("\x1b[4m")
+		}
+		if st.strike {
+			b.WriteString("\x1b[9m")
+		}
+		if st.reverse {
+			b.WriteString("\x1b[7m")
+		}
+		if st.fg >= 0 && st.fg < 16 {
+			fmt.Fprintf(b, "\x1b[%sm", ircToANSI[st.fg])
+		}
+		if st.bg >= 0 && st.bg < 16 {
+			fmt.Fprintf(b, "\x1b[%sm", "4"+ircToANSI[st.bg][1:])
+		}
+	}
+
 	var b strings.Builder
+	changed := false
 	i := 0
 	for i < len(s) {
 		ch := s[i]
 		switch ch {
-		case 0x02: // bold
-			b.WriteString("\x1b[1m")
+		case 0x02:
+			cur.bold = !cur.bold
+			emit(&b, cur)
+			changed = true
 			i++
-		case 0x1D: // italic
-			b.WriteString("\x1b[3m")
+		case 0x1D:
+			cur.italic = !cur.italic
+			emit(&b, cur)
+			changed = true
 			i++
-		case 0x1F: // underline
-			b.WriteString("\x1b[4m")
+		case 0x1F:
+			cur.underline = !cur.underline
+			emit(&b, cur)
+			changed = true
 			i++
-		case 0x1E: // strikethrough
-			b.WriteString("\x1b[9m")
+		case 0x1E:
+			cur.strike = !cur.strike
+			emit(&b, cur)
+			changed = true
 			i++
-		case 0x16: // reverse
-			b.WriteString("\x1b[7m")
+		case 0x16:
+			cur.reverse = !cur.reverse
+			emit(&b, cur)
+			changed = true
 			i++
-		case 0x0F: // reset
+		case 0x0F:
+			cur = state{fg: -1, bg: -1}
 			b.WriteString(ansiReset)
+			changed = true
 			i++
-		case 0x03: // colour: \x03[fg][,bg]
+		case 0x03:
 			i++
 			fg, bg := -1, -1
 			if i < len(s) && s[i] >= '0' && s[i] <= '9' {
@@ -90,23 +135,25 @@ func toANSI(s string) string {
 				}
 			}
 			if fg < 0 && bg < 0 {
-				b.WriteString(ansiReset)
+				cur.fg, cur.bg = -1, -1
 			} else {
-				if fg >= 0 && fg < 16 {
-					fmt.Fprintf(&b, "\x1b[%sm", ircToANSI[fg])
+				if fg >= 0 {
+					cur.fg = fg
 				}
-				if bg >= 0 && bg < 16 {
-					fmt.Fprintf(&b, "\x1b[%sm", "4"+ircToANSI[bg][1:])
+				if bg >= 0 {
+					cur.bg = bg
 				}
 			}
-		case 0x04, 0x00, '\r', '\n': // skip hex-colour and control junk
+			emit(&b, cur)
+			changed = true
+		case 0x04, 0x00, '\r', '\n':
 			i++
 		default:
 			b.WriteByte(ch)
 			i++
 		}
 	}
-	if strings.Contains(b.String(), "\x1b[") {
+	if changed {
 		b.WriteString(ansiReset)
 	}
 	return b.String()
