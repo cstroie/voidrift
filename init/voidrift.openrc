@@ -10,13 +10,12 @@ DATADIR="/var/lib/voidrift"
 VOIDRIFT_ENV="/etc/voidrift/voidrift.env"
 
 command="/usr/local/bin/voidrift"
-command_args="-data ${DATADIR}/voidrift.json -guilds ${DATADIR}/guilds.json"
+command_args="-data ${DATADIR}/voidrift.json -guilds ${DATADIR}/guilds.json -log /var/log/voidrift/voidrift.log"
 command_user="voidrift:nogroup"
 command_background=true
 
 directory="${DATADIR}"
 pidfile="/run/${RC_SVCNAME}.pid"
-output_log="/var/log/voidrift/voidrift.log"
 error_log="/var/log/voidrift/voidrift.log"
 
 depend() {

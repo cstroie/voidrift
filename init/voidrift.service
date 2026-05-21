@@ -16,7 +16,7 @@ EnvironmentFile=-/etc/voidrift/voidrift.env
 
 WorkingDirectory=/var/lib/voidrift
 
-ExecStart=/usr/local/bin/voidrift -data voidrift.json -guilds guilds.json
+ExecStart=/usr/local/bin/voidrift -data voidrift.json -guilds guilds.json -log /var/log/voidrift/voidrift.log
 
 Restart=on-failure
 RestartSec=30s
@@ -26,7 +26,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/voidrift
+ReadWritePaths=/var/lib/voidrift /var/log/voidrift
+LogsDirectory=voidrift
+LogsDirectoryMode=0750
 CapabilityBoundingSet=
 RestrictAddressFamilies=AF_INET AF_INET6
 SystemCallFilter=@system-service
