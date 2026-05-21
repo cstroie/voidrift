@@ -161,7 +161,7 @@ PassSalt, PassHash    — salted SHA-256 password
 Alignment             — int8: -1 evil, 0 neutral, 1 good
 AlignDriftAt          — level at which a neutral player is forced to good/evil; set to 5–10 at registration, or level+1..5 on first login for pre-existing neutral players; 0 = resolved
 Level, TTL            — level and seconds to next level
-Items [10]int         — item level per slot (implant/beacon/module/weapon/visor/suit/gauntlets/plating/deflector/boots)
+Items [10]int         — item level per slot (implant/beacon/module/weapon/visor/suit/gauntlet/hull plating/deflector/boot)
 ItemNames [10]string  — unique name for each slot; empty = normal item
 Online, Addr          — session state
 X, Y                  — grid position on 500×500 toroidal map (reset on login)
@@ -219,7 +219,7 @@ Focus slot derived via FNV-1a hash of the lowercase class name mod 10.
 | Neutral | normal | none | none |
 
 ### Item Slots
-`implant`, `beacon`, `module`, `weapon`, `visor`, `suit`, `gauntlets`, `hull plating`, `deflector`, `boots`
+`implant`, `beacon`, `module`, `weapon`, `visor`, `suit`, `gauntlet`, `hull plating`, `deflector`, `boot`
 
 ### Item Rarities (level-up drops only)
 | Rarity | Unlock | Chance | Level range | Topic marker |

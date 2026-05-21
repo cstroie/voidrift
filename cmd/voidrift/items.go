@@ -64,10 +64,10 @@ var slotNouns = map[string][]string{
 	"weapon":    {"Blade", "Lance", "Resonator", "Edge", "Fang"},
 	"visor":     {"Cortex", "HUD", "Lens", "Shroud", "Caul"},
 	"suit":      {"Carapace", "Weave", "Mantle", "Liner", "Shell"},
-	"gauntlets": {"Grips", "Claws", "Bracers", "Fists", "Gauntlets"},
+	"gauntlet":  {"Grips", "Claws", "Bracers", "Fists", "Gauntlets"},
 	"hull plating": {"Greaves", "Plates", "Guards", "Panels", "Layering"},
 	"deflector": {"Barrier", "Ward", "Bulwark", "Aegis", "Field"},
-	"boots":     {"Treads", "Walkers", "Steps", "Striders", "Soles"},
+	"boot":      {"Treads", "Walkers", "Steps", "Striders", "Soles"},
 }
 
 // itemLabel returns the unique item name for a slot if one exists, otherwise
