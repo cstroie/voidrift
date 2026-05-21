@@ -203,7 +203,7 @@ var godsendMsgs = []string{
 var itemCalamityMsgs = []string{
 	fNick + "'s " + fSlot + " is corroded by entropic flux. Item degraded by " + fBadPct + ".",
 	"A Null tendril phases through " + fNick + "'s " + fSlot + ", leaving it weakened. Item degraded by " + fBadPct + ".",
-	fNick + "'s " + fSlot + " catastrophically vents during a proximity event. Item degraded by " + fBadPct + ".",
+	fNick + "'s " + fSlot + " catastrophically vents during a void-wake collision. Item degraded by " + fBadPct + ".",
 	"The Deep Signal resonates with " + fNick + "'s " + fSlot + " — badly. Item degraded by " + fBadPct + ".",
 	"Drift exposure warps " + fNick + "'s " + fSlot + " beyond easy repair. Item degraded by " + fBadPct + ".",
 	"A micro-collapse tears through " + fNick + "'s " + fSlot + ". Item degraded by " + fBadPct + ".",
