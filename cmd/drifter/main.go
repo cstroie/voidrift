@@ -204,11 +204,12 @@ func main() {
 
 		// Watch for !whoami reply to verify we are online.
 		if strings.EqualFold(line.Nick, *botNick) && !strings.HasPrefix(target, "#") &&
-			strings.Contains(text, "[online]") {
-			logger.Printf("Online status confirmed: %s", text)
-		} else if strings.EqualFold(line.Nick, *botNick) && !strings.HasPrefix(target, "#") &&
-			strings.Contains(text, "[offline]") {
-			logger.Printf("WARNING: status is offline after login: %s", text)
+			strings.Contains(text, "phase:") {
+			if strings.Contains(text, "[online]") {
+				logger.Printf("Online status confirmed: %s", text)
+			} else {
+				logger.Printf("WARNING: not online after login: %s", text)
+			}
 		}
 
 		// Watch for the bot's login acknowledgement — either the private reply
