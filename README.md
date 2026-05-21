@@ -10,6 +10,8 @@ The old gods are gone. What remains are Entities: the Pale Architects, the Drift
 
 See [MANUAL.md](MANUAL.md) for full player documentation: commands, mechanics, and strategy.
 
+![Void Drift in action](screenshot.png)
+
 ## Quickstart
 
 **Prerequisites**: Go 1.21 or later.
