@@ -236,9 +236,10 @@ func main() {
 			if isPrivAck || isChanAck {
 				logger.Printf("Login confirmed: %s", text)
 				// Verify we are online by DMing !whoami to the bot.
-				whoamiPending = true
+				// Wait 5s so any delayed private !login reply arrives first.
 				go func() {
-					time.Sleep(2 * time.Second)
+					time.Sleep(5 * time.Second)
+					whoamiPending = true
 					logger.Println("Sending !whoami to verify online status")
 					c.Privmsg(*botNick, "!whoami")
 				}()
