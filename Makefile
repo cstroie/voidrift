@@ -1,4 +1,5 @@
 BINARY   := voidrift
+DRIFTER  := drifter
 CHANNEL  ?= \#voidrift
 NICK     ?= VoidKeeper
 SERVER   ?= irc.libera.chat:6667
@@ -16,12 +17,13 @@ all: build
 
 build:
 	go build $(LDFLAGS) -o $(BINARY) ./cmd/voidrift
+	go build -o $(DRIFTER) ./cmd/drifter
 
 test:
 	go test ./...
 
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) $(DRIFTER)
 
 run: build
 	./$(BINARY) -server $(SERVER) -nick $(NICK) -channel "$(CHANNEL)"
