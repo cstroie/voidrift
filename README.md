@@ -135,6 +135,7 @@ go build ./cmd/drifter
 | `-channel` | `#voidrift` | Channel to join |
 | `-server` | `irc.libera.chat:6667` | IRC server `host:port` |
 | `-ssl` | `false` | Use SSL/TLS |
+| `-bot` | `VoidKeeper` | Bot nick to DM `!login` to |
 | `-server-pass` | _(none)_ | IRC server password |
 | `-nickserv-pass` | _(none)_ | NickServ IDENTIFY password |
 | `-log` | _(none)_ | Append messages to this file (stdout always active) |
