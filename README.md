@@ -65,7 +65,7 @@ order: **flag > env var > compiled-in default**.
 | `-channel` | `VOIDRIFT_CHANNEL` | `#voidrift` | Game channel |
 | `-data` | `VOIDRIFT_DATA` | `voidrift.json` | Player data file (created automatically) |
 | `-guilds` | `VOIDRIFT_GUILDS` | `guilds.json` | Guild data file (created automatically) |
-| `-nickserv-pass` | `VOIDRIFT_NICKSERV` | _(none)_ | NickServ password — sends `IDENTIFY` on connect |
+| `-nickserv-pass` | `VOIDRIFT_NICKSERV_PASS` | _(none)_ | NickServ password — sends `IDENTIFY` on connect |
 | `-chanserv` | `VOIDRIFT_CHANSERV` | `ChanServ` | ChanServ nick to request ops from on channel join (set empty to disable) |
 | `-log` | `VOIDRIFT_LOG` | _(none)_ | Append log output to this file (stdout always active) |
 | `-dev` | `VOIDRIFT_DEV` | `false` | Dev mode: auto-login channel members on startup, TTL 14× faster, event rates ×10, creep levels capped at 10, quests require only 1 player at level 0+ |
@@ -78,7 +78,7 @@ order: **flag > env var > compiled-in default**.
 
 For service deployments copy `init/voidrift.env.example` to
 `/etc/voidrift/voidrift.env` (mode `0600`, owned by `root`) and set your
-values there. Secrets such as `VOIDRIFT_NICKSERV` and `VOIDRIFT_SERVER_PASS`
+values there. Secrets such as `VOIDRIFT_NICKSERV_PASS` and `VOIDRIFT_SERVER_PASS`
 should only ever live in this file, not on the command line.
 
 ## Running as a Service
@@ -98,7 +98,7 @@ systemd). After installing, configure the bot by copying the env-file template:
 ```bash
 cp /etc/voidrift/voidrift.env.example /etc/voidrift/voidrift.env
 chmod 600 /etc/voidrift/voidrift.env
-$EDITOR /etc/voidrift/voidrift.env   # set VOIDRIFT_NICKSERV, etc.
+$EDITOR /etc/voidrift/voidrift.env   # set VOIDRIFT_NICKSERV_PASS, etc.
 ```
 
 Then start the service:

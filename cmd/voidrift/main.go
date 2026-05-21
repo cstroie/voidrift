@@ -32,7 +32,7 @@ var envFlags = map[string]string{
 	"VOIDRIFT_DATA":        "data",
 	"VOIDRIFT_GUILDS":      "guilds",
 	"VOIDRIFT_DEV":         "dev",
-	"VOIDRIFT_NICKSERV":    "nickserv-pass",
+	"VOIDRIFT_NICKSERV_PASS": "nickserv-pass",
 	"VOIDRIFT_CHANSERV":    "chanserv",
 	"VOIDRIFT_LOG":         "log",
 	"VOIDRIFT_RATE_PLAYER": "rate-player",
