@@ -271,6 +271,9 @@ func main() {
 	// whoamiPending is true while we are waiting for the !whoami reply.
 	var whoamiPending bool
 
+	// stopPeriodic is closed to stop the periodic !whoami goroutine on disconnect.
+	var stopPeriodic chan struct{}
+
 	// sendLogin sends !login to the bot and sets up the ack timeout.
 	// Must be called from a goroutine (not while holding IRC event locks).
 	var sendLogin func(c *irc.Conn, reason string)
@@ -309,6 +312,47 @@ func main() {
 				time.Sleep(delay)
 				loginSent = false
 				sendLogin(c, "whoami timeout")
+			}
+		}()
+	}
+
+	// startPeriodicCheck periodically sends !whoami every 30–90 minutes to verify
+	// we are still logged in, retrying login if the check fails.
+	startPeriodicCheck := func(c *irc.Conn) {
+		if stopPeriodic != nil {
+			close(stopPeriodic)
+		}
+		stopPeriodic = make(chan struct{})
+		stop := stopPeriodic
+		go func() {
+			for {
+				delay := time.Duration(30+mathrand.Intn(61)) * time.Minute
+				select {
+				case <-stop:
+					return
+				case <-time.After(delay):
+				}
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				whoamiPending = true
+				logger.Println("Periodic check: sending !whoami")
+				c.Privmsg(*botNick, "!whoami")
+				select {
+				case <-stop:
+					return
+				case <-time.After(15 * time.Second):
+				}
+				if whoamiPending {
+					whoamiPending = false
+					logger.Printf("WARNING: no periodic !whoami reply — retrying login")
+					d := time.Duration(5+mathrand.Intn(10)) * time.Second
+					time.Sleep(d)
+					loginSent = false
+					sendLogin(c, "periodic whoami timeout")
+				}
 			}
 		}()
 	}
@@ -431,6 +475,7 @@ func main() {
 			whoamiPending = false
 			if strings.Contains(text, "[online]") {
 				logger.Printf("Online status confirmed: %s", text)
+				startPeriodicCheck(c)
 			} else {
 				logger.Printf("WARNING: not online after login — retrying")
 				go func() {
@@ -475,6 +520,10 @@ func main() {
 
 	conn.HandleFunc("disconnected", func(c *irc.Conn, line *irc.Line) {
 		logger.Println("Disconnected")
+		if stopPeriodic != nil {
+			close(stopPeriodic)
+			stopPeriodic = nil
+		}
 		connected <- false
 	})
 
