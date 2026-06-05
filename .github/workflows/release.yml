@@ -12,9 +12,9 @@ jobs:
         include:
           - {goos: linux,   goarch: amd64, cgo: '0'}
           - {goos: linux,   goarch: arm64, cgo: '0'}
-          - {goos: darwin,  goarch: amd64, cgo: '1'}
-          - {goos: darwin,  goarch: arm64, cgo: '1'}
-          - {goos: windows, goarch: amd64, cgo: '1'}
+          - {goos: darwin,  goarch: amd64, cgo: '0'}
+          - {goos: darwin,  goarch: arm64, cgo: '0'}
+          - {goos: windows, goarch: amd64, cgo: '0'}
 
     steps:
       - uses: actions/checkout@v4
