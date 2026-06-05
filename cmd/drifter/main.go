@@ -248,6 +248,11 @@ func main() {
 	cfg.Pass = *serverPass
 	cfg.NewNick = func(n string) string { return n + "_" }
 	conn := irc.Client(cfg)
+	// goirc overwrites cfg.Me.Ident with the server-prefixed value (e.g. "~drifter")
+	// after the 001 welcome. Save the original so we can restore it before each
+	// reconnect, otherwise ngircd rejects the tilde-prefixed name as invalid.
+	origIdent := cfg.Me.Ident
+	origNick := cfg.Me.Nick
 
 	// On SIGINT/SIGTERM, send !logout then exit cleanly (no quit penalty).
 	sigs := make(chan os.Signal, 1)
@@ -537,6 +542,11 @@ func main() {
 	})
 
 	for {
+		// Restore original ident and nick before each connect attempt so that
+		// goirc does not send the server-mangled values (e.g. "~drifter") on
+		// reconnect, which ngircd rejects as an invalid user name.
+		cfg.Me.Ident = origIdent
+		cfg.Me.Nick = origNick
 		logger.Println("Connecting to", *server)
 		if err := conn.Connect(); err != nil {
 			logger.Println("Connect error:", err)

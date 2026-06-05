@@ -120,6 +120,8 @@ func main() {
 		conn.Topic(*channel, topic)
 	}
 
+	origIdent := cfg.Me.Ident
+	origNick := cfg.Me.Nick
 	connected := make(chan bool)
 	// invitedAt tracks the last time each nick was sent an IRC INVITE so we
 	// never invite the same player more than once per hour.
@@ -129,6 +131,11 @@ func main() {
 
 	// Reconnect loop: on disconnect wait 10 s then try again indefinitely.
 	for {
+		// Restore original ident and nick before each attempt; goirc overwrites
+		// cfg.Me with server-seen values (e.g. "~voidrift") after 001, which
+		// ngircd rejects as invalid on the next reconnect.
+		cfg.Me.Ident = origIdent
+		cfg.Me.Nick = origNick
 		log.Println("Connecting to", *server)
 		if err := conn.Connect(); err != nil {
 			log.Println("Connect error:", err)
