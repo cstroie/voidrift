@@ -1060,6 +1060,22 @@ func (g *Game) start() {
 	g.updateTopic()
 }
 
+// stop halts the tick loop and marks all players offline. Called on disconnect
+// so game state stays consistent while the bot is not connected to IRC.
+func (g *Game) stop() {
+	if g.stopTick != nil {
+		close(g.stopTick)
+		g.stopTick = nil
+	}
+	g.mu.Lock()
+	for _, p := range g.players {
+		p.Online = false
+		p.Addr = ""
+	}
+	g.mu.Unlock()
+	g.save()
+}
+
 // OnJoin auto-logs in a registered player when they join the channel and
 // announces their return. Unregistered joiners are silently ignored.
 func (g *Game) OnJoin(src string) {

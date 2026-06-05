@@ -298,7 +298,10 @@ func registerHandlers(conn *irc.Conn, game *Game, say func(string), connected ch
 		}
 	})
 
-	conn.HandleFunc("disconnected", func(c *irc.Conn, line *irc.Line) { connected <- false })
+	conn.HandleFunc("disconnected", func(c *irc.Conn, line *irc.Line) {
+		game.stop()
+		connected <- false
+	})
 }
 
 // registerWHOHandlers wires up the WHO reply (numeric 352) and end-of-WHO
