@@ -85,6 +85,7 @@ go build ./cmd/drifter
 - Sends `!whoami` 5s after login confirmation to verify online status via the `[online]` field; repeats every 30–90 minutes to detect silent logouts and re-login if needed
 - On SIGINT/SIGTERM sends `!logout` to the bot before exiting, avoiding the quit penalty
 - Reconnects automatically after 10s on disconnect; resets login state on each reconnect
+- Restores the original IRC ident before each reconnect (goirc overwrites `cfg.Me.Ident` with the server-seen value, e.g. `~drifter`; ngircd rejects tilde-prefixed idents as invalid)
 - stdout output uses ANSI colours/bold/italic converted from IRC formatting codes; log file receives plain stripped text
 - Warns on: bot absent from channel, join errors (403/473/474/475), login failure, no login reply within 10s, bot PART/QUIT/KICK
 
@@ -148,6 +149,11 @@ go.mod / go.sum — module: github.com/cstroie/voidrift, requires fluffle/goirc
 - All map/player/guild mutations are protected by `Game.mu` (`sync.Mutex`).
 - The tick goroutine runs every second; `start()` closes the previous stop channel
   before spawning a new one (prevents goroutine leaks on reconnect).
+- `stop()` is called on IRC disconnect: it closes the tick channel, marks all players
+  offline, and saves state. `start()` on reconnect brings the tick loop back up.
+- Both binaries save and restore the original `cfg.Me.Ident` / `cfg.Me.Nick` before
+  each `conn.Connect()` call — goirc overwrites these from the server's 001 welcome,
+  and ngircd rejects tilde-prefixed idents (e.g. `~voidrift`) as invalid user names.
 - `say()`, `updateTopic()`, and other outbound calls must happen **outside** the mutex.
   Collect messages into a `[]string` inside the lock, then send after releasing.
 - Players are identified by their full `nick!user@host` address (`Player.Addr`)
