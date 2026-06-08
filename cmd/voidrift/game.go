@@ -3241,6 +3241,9 @@ const (
 // amount in the matching per-source counter. Must be called with mu held.
 func (g *Game) applyPenalty(p *Player, base int64, kind string) {
 	delta := int64(float64(base) * math.Pow(1.14, float64(p.Level)))
+	if max := g.ttlForLevel(p.Level); delta > max {
+		delta = max
+	}
 	p.TTL += delta
 	switch kind {
 	case penMesg:
