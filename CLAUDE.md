@@ -14,10 +14,13 @@ When adding, removing, or renaming flags or behaviours, update **all** of:
 - `CLAUDE.md` — flags tables for both binaries (this file)
 - `man/man1/voidrift.1` and `man/man1/drifter.1` — OPTIONS and ENVIRONMENT sections
 - `init/voidrift.env.example` — env var names/comments
+- `packaging/` and `init/` — keep install paths in sync if they change
 
 ## Releases & cross-platform builds
 
-`make dist` builds both binaries for all five platforms. Linux targets use `CGO_ENABLED=0` for static linking (works on Alpine/musl and old glibc). Tag format: `vYYMMDD` (e.g. `v260526`). GitHub Actions (`.github/workflows/release.yml`) runs `make dist` and uploads all 10 binaries to the GitHub release on each tag push.
+`make dist` builds both binaries for all five platforms. Linux targets use `CGO_ENABLED=0` for static linking (works on Alpine/musl and old glibc). Tag format: `vYYMMDD` (e.g. `v260526`). GitHub Actions (`.github/workflows/release.yml`) builds each platform on every tag push and uploads the binaries; for linux it also runs `packaging/build.sh <arch> <tag>` to produce `dist/voidrift-<tag>-linux-<arch>.tar.gz` (with `install.sh`, man pages, init files) and deb/rpm/apk via nfpm (`packaging/nfpm.yaml`; variables are substituted with `sed`). `ci.yml` runs vet, build and test.
+
+Install layout: binaries and man pages under `/opt/voidrift`; config `/etc/voidrift`, data `/var/lib/voidrift`, logs `/var/log/voidrift`. Init files reference `/opt/voidrift/voidrift`; `make install` and `install.sh` rewrite it for a different `PREFIX`. Packages and `install.sh` never enable or start the service.
 
 Binary names: `voidrift-<os>-<arch>[.exe]` and `drifter-<os>-<arch>[.exe]`.
 

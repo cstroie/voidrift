@@ -41,9 +41,24 @@ jobs:
             -o drifter-${GOOS}-${GOARCH}${EXT} \
             ./cmd/drifter
 
+      # nfpm needs a newer Go than go.mod's minimum, so install it with "stable".
+      - name: Use latest Go for nfpm
+        if: matrix.goos == 'linux'
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: Package
+        if: matrix.goos == 'linux'
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.41.1
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          packaging/build.sh ${{ matrix.goarch }} ${GITHUB_REF_NAME}
+
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            dist/*
             voidrift-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}
             drifter-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }}

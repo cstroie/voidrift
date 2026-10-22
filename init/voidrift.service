@@ -16,7 +16,7 @@ EnvironmentFile=-/etc/voidrift/voidrift.env
 
 WorkingDirectory=/var/lib/voidrift
 
-ExecStart=/usr/local/bin/voidrift -data voidrift.json -guilds guilds.json -log /var/log/voidrift/voidrift.log
+ExecStart=/opt/voidrift/voidrift -data voidrift.json -guilds guilds.json -log /var/log/voidrift/voidrift.log
 
 Restart=on-failure
 RestartSec=30s

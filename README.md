@@ -100,6 +100,27 @@ should only ever live in this file, not on the command line.
 
 ## Running as a Service
 
+### Release packages
+
+Each GitHub release ships, for linux amd64 and arm64:
+
+- `voidrift-<tag>-linux-<arch>.tar.gz` — both binaries, man pages, init files, the env template and `install.sh`. Unpack and run `sudo ./install.sh` (it detects systemd or OpenRC, creates the `voidrift` user, `/var/lib/voidrift`, `/var/log/voidrift` and `/etc/voidrift`, and installs to `/opt/voidrift`; `sudo ./install.sh --uninstall` removes it, keeping data and config).
+- `.deb`, `.rpm` and `.apk` packages (`dpkg -i`, `rpm -i`, `apk add --allow-untrusted ./voidrift_*.apk`) — binaries in `/opt/voidrift`, man pages in `/usr/share/man/man1`, the env template in `/etc/voidrift`, plus the systemd unit (deb/rpm) or OpenRC script (apk).
+
+Neither the installer nor the packages enable or start the service: the defaults would put an unconfigured bot on `irc.libera.chat`. Copy the env template and edit it first, as shown below. Build them locally with `packaging/build.sh <arch> <tag>` (needs fresh `voidrift-linux-<arch>` / `drifter-linux-<arch>` binaries and [nfpm](https://nfpm.goreleaser.com)).
+
+### Docker
+
+```bash
+docker build -t voidrift .
+docker run -d -v voidrift-data:/data -e VOIDRIFT_SERVER=irc.libera.chat:6697 -e VOIDRIFT_SSL=true \
+    -e VOIDRIFT_NICK=VoidKeeper -e VOIDRIFT_CHANNEL='#voidrift' voidrift
+```
+
+State is kept in the `/data` volume; configure with `VOIDRIFT_*` variables or flags. Run `drifter` from the same image with `--entrypoint /drifter`.
+
+### Makefile
+
 The Makefile handles everything automatically:
 
 ```bash
@@ -107,7 +128,8 @@ sudo make install    # build and install binary, create user, install init file
 sudo make uninstall  # stop service, remove init file and binary
 ```
 
-`make install` installs the binary to `/usr/local/bin/voidrift`, creates
+`make install` installs the binaries to `/opt/voidrift` (`voidrift`, `drifter`) and the
+man pages to `/opt/voidrift/man/man1` (`man -M /opt/voidrift/man voidrift`), creates
 `/var/lib/voidrift` as the data directory, and detects the init system
 automatically (Alpine Linux → OpenRC, anything with `/run/systemd/system` →
 systemd). After installing, configure the bot by copying the env-file template:
@@ -133,7 +155,7 @@ rc-service voidrift start
 
 ### Manual installation
 
-If you prefer to install without `make`, copy the binary to `/usr/local/bin/`
+If you prefer to install without `make`, copy the binary to `/opt/voidrift/`
 and pick the appropriate init file from the `init/` directory. The systemd
 unit runs the bot as the `voidrift` user with `WorkingDirectory=/var/lib/voidrift`;
 the OpenRC script does the same via `command_user` and `directory`.

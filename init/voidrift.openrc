@@ -9,10 +9,15 @@ DATADIR="/var/lib/voidrift"
 # Sourced in start_pre before the process launches.
 VOIDRIFT_ENV="/etc/voidrift/voidrift.env"
 
-command="/usr/local/bin/voidrift"
+# supervise-daemon runs the bot in the foreground and respawns it after a
+# crash, mirroring Restart=on-failure/RestartSec=30s in the systemd unit.
+supervisor="supervise-daemon"
+respawn_delay=30
+respawn_max=0
+
+command="/opt/voidrift/voidrift"
 command_args="-data ${DATADIR}/voidrift.json -guilds ${DATADIR}/guilds.json -log /var/log/voidrift/voidrift.log"
 command_user="voidrift:nogroup"
-command_background=true
 
 directory="${DATADIR}"
 pidfile="/run/${RC_SVCNAME}.pid"

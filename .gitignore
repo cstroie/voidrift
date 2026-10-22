@@ -1,4 +1,8 @@
 idlerpg
 /voidrift
 /drifter
+/voidrift-*
+/drifter-*
+/dist
 *.json
+*.log

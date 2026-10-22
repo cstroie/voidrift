@@ -1,0 +1,41 @@
+name: voidrift
+arch: ${GOARCH}
+platform: linux
+version: ${VERSION}
+version_schema: none
+section: games
+maintainer: Costin Stroie <costinstroie@eridu.eu.org>
+description: Void Drift — an IRC idle RPG bot (voidrift) and its idle client (drifter)
+homepage: https://github.com/cstroie/voidrift
+license: GPL-3.0-or-later
+contents:
+  - src: voidrift-linux-${GOARCH}
+    dst: /opt/voidrift/voidrift
+    file_info: {mode: 0755}
+  - src: drifter-linux-${GOARCH}
+    dst: /opt/voidrift/drifter
+    file_info: {mode: 0755}
+  - src: man/man1/voidrift.1
+    dst: /usr/share/man/man1/voidrift.1
+    file_info: {mode: 0644}
+  - src: man/man1/drifter.1
+    dst: /usr/share/man/man1/drifter.1
+    file_info: {mode: 0644}
+  - src: init/voidrift.env.example
+    dst: /etc/voidrift/voidrift.env.example
+    file_info: {mode: 0600}
+  - src: init/voidrift.service
+    dst: /lib/systemd/system/voidrift.service
+    packager: deb
+    file_info: {mode: 0644}
+  - src: init/voidrift.service
+    dst: /usr/lib/systemd/system/voidrift.service
+    packager: rpm
+    file_info: {mode: 0644}
+  - src: init/voidrift.openrc
+    dst: /etc/init.d/voidrift
+    packager: apk
+    file_info: {mode: 0755}
+scripts:
+  postinstall: packaging/postinst.sh
+  postremove: packaging/postrm.sh

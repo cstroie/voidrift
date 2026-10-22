@@ -124,6 +124,14 @@ Guild data (default location; override with \fB\-guilds\fR).
 .TP
 .I /etc/voidrift/voidrift.env
 Optional environment file for service deployments.
+.TP
+.I /opt/voidrift/voidrift, /opt/voidrift/drifter
+Default system install location of the binaries; man pages are in
+\fI/opt/voidrift/man/man1\fR (use \fBman \-M /opt/voidrift/man voidrift\fR or
+add it to \fBMANPATH\fR). Packages install the pages to \fI/usr/share/man/man1\fR.
+.TP
+.I /var/lib/voidrift, /var/log/voidrift
+Data and log directories used by the service.
 .SH EXAMPLES
 Run with defaults against Libera Chat:
 .PP
