@@ -21,7 +21,9 @@ command_user="voidrift:nogroup"
 
 directory="${DATADIR}"
 pidfile="/run/${RC_SVCNAME}.pid"
-error_log="/var/log/voidrift/voidrift.log"
+# stderr (panics) goes to its own file: OpenRC opens it as root, and the bot
+# appends to voidrift.log as voidrift via -log, so they must not be the same file.
+error_log="/var/log/voidrift/voidrift.err"
 
 depend() {
     need net
@@ -51,4 +53,6 @@ start_pre() {
     mkdir -p /var/log/voidrift
     chown voidrift:nogroup /var/log/voidrift
     chmod 0750 /var/log/voidrift
+    touch /var/log/voidrift/voidrift.log /var/log/voidrift/voidrift.err
+    chown voidrift:nogroup /var/log/voidrift/voidrift.log /var/log/voidrift/voidrift.err
 }

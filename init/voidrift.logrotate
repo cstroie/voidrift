@@ -1,4 +1,4 @@
-/var/log/voidrift/*.log {
+/var/log/voidrift/*.log /var/log/voidrift/*.err {
     weekly
     rotate 8
     compress
