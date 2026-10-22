@@ -15,7 +15,7 @@ supervisor="supervise-daemon"
 respawn_delay=30
 respawn_max=0
 
-command="/opt/voidrift/voidrift"
+command="/usr/bin/voidrift"
 command_args="-data ${DATADIR}/voidrift.json -guilds ${DATADIR}/guilds.json -log /var/log/voidrift/voidrift.log"
 command_user="voidrift:nogroup"
 

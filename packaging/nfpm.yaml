@@ -10,10 +10,10 @@ homepage: https://github.com/cstroie/voidrift
 license: GPL-3.0-or-later
 contents:
   - src: voidrift-linux-${GOARCH}
-    dst: /opt/voidrift/voidrift
+    dst: /usr/bin/voidrift
     file_info: {mode: 0755}
   - src: drifter-linux-${GOARCH}
-    dst: /opt/voidrift/drifter
+    dst: /usr/bin/drifter
     file_info: {mode: 0755}
   - src: man/man1/voidrift.1
     dst: /usr/share/man/man1/voidrift.1
@@ -24,6 +24,10 @@ contents:
   - src: init/voidrift.env.example
     dst: /etc/voidrift/voidrift.env.example
     file_info: {mode: 0600}
+  - src: init/voidrift.logrotate
+    dst: /etc/logrotate.d/voidrift
+    type: config|noreplace
+    file_info: {mode: 0644}
   - src: init/voidrift.service
     dst: /lib/systemd/system/voidrift.service
     packager: deb

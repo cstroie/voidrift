@@ -7,8 +7,8 @@ VERSION  := $(shell date +%y%m%d)
 
 LDFLAGS  := -ldflags "-X main.version=$(VERSION)"
 
-PREFIX   ?= /opt/voidrift
-MANDIR   ?= $(PREFIX)/man
+PREFIX   ?= /usr
+MANDIR   ?= $(PREFIX)/share/man
 DATADIR  := /var/lib/voidrift
 ENVDIR   := /etc/voidrift
 
@@ -69,10 +69,10 @@ dev: build
 # env directories, create the voidrift user, then wire up the correct init
 # system (systemd or OpenRC/Alpine).
 install: build
-	@echo "==> Installing $(VOIDRIFT) to $(PREFIX)/$(VOIDRIFT)"
-	install -dm755 $(PREFIX)
-	install -m755 $(VOIDRIFT) $(PREFIX)/$(VOIDRIFT)
-	install -m755 $(DRIFTER) $(PREFIX)/$(DRIFTER)
+	@echo "==> Installing $(VOIDRIFT) to $(PREFIX)/bin/$(VOIDRIFT)"
+	install -dm755 $(PREFIX)/bin
+	install -m755 $(VOIDRIFT) $(PREFIX)/bin/$(VOIDRIFT)
+	install -m755 $(DRIFTER) $(PREFIX)/bin/$(DRIFTER)
 	@echo "==> Installing man pages to $(MANDIR)/man1"
 	install -dm755 $(MANDIR)/man1
 	install -m644 man/man1/voidrift.1 $(MANDIR)/man1/voidrift.1
@@ -82,6 +82,7 @@ install: build
 	@echo "==> Installing env-file template to $(ENVDIR)/$(VOIDRIFT).env.example"
 	install -dm700 $(ENVDIR)
 	install -m600 init/$(VOIDRIFT).env.example $(ENVDIR)/$(VOIDRIFT).env.example
+	@if [ -d /etc/logrotate.d ]; then install -m644 init/$(VOIDRIFT).logrotate /etc/logrotate.d/$(VOIDRIFT); fi
 	@# Create the dedicated user if it does not exist yet.
 	@if [ -f /etc/alpine-release ]; then \
 		id -u $(VOIDRIFT) >/dev/null 2>&1 || \
@@ -94,12 +95,12 @@ install: build
 	@# Install the appropriate init file.
 	@if [ -f /etc/alpine-release ]; then \
 		echo "==> Detected Alpine Linux — installing OpenRC service"; \
-		sed "s|/opt/voidrift/voidrift|$(PREFIX)/$(VOIDRIFT)|" init/$(VOIDRIFT).openrc > /etc/init.d/$(VOIDRIFT); chmod 755 /etc/init.d/$(VOIDRIFT); \
+		sed "s|/usr/bin/voidrift|$(PREFIX)/bin/$(VOIDRIFT)|" init/$(VOIDRIFT).openrc > /etc/init.d/$(VOIDRIFT); chmod 755 /etc/init.d/$(VOIDRIFT); \
 		rc-update add $(VOIDRIFT) default; \
 		echo "==> Start with: rc-service $(VOIDRIFT) start"; \
 	elif [ -d /run/systemd/system ]; then \
 		echo "==> Detected systemd — installing systemd unit"; \
-		sed "s|/opt/voidrift/voidrift|$(PREFIX)/$(VOIDRIFT)|" init/$(VOIDRIFT).service > /etc/systemd/system/$(VOIDRIFT).service; chmod 644 /etc/systemd/system/$(VOIDRIFT).service; \
+		sed "s|/usr/bin/voidrift|$(PREFIX)/bin/$(VOIDRIFT)|" init/$(VOIDRIFT).service > /etc/systemd/system/$(VOIDRIFT).service; chmod 644 /etc/systemd/system/$(VOIDRIFT).service; \
 		systemctl daemon-reload; \
 		systemctl enable $(VOIDRIFT); \
 		echo "==> Start with: systemctl start $(VOIDRIFT)"; \
@@ -107,7 +108,6 @@ install: build
 		echo "WARNING: could not detect init system; init file not installed."; \
 		echo "  Manually install init/$(VOIDRIFT).service or init/$(VOIDRIFT).openrc."; \
 	fi
-	@echo "==> Man pages: man -M $(MANDIR) $(VOIDRIFT)"
 	@echo "==> Done. Copy $(ENVDIR)/$(VOIDRIFT).env.example to $(ENVDIR)/$(VOIDRIFT).env and set your config."
 
 uninstall:
@@ -121,6 +121,6 @@ uninstall:
 		rm -f /etc/systemd/system/$(VOIDRIFT).service; \
 		systemctl daemon-reload; \
 	fi
-	rm -f $(PREFIX)/$(VOIDRIFT) $(PREFIX)/$(DRIFTER)
+	rm -f $(PREFIX)/bin/$(VOIDRIFT) $(PREFIX)/bin/$(DRIFTER) /etc/logrotate.d/$(VOIDRIFT)
 	rm -f $(MANDIR)/man1/voidrift.1 $(MANDIR)/man1/drifter.1
 	@echo "==> $(VOIDRIFT) uninstalled. Data in $(DATADIR) and config in $(ENVDIR) were preserved."

@@ -20,7 +20,7 @@ When adding, removing, or renaming flags or behaviours, update **all** of:
 
 `make dist` builds both binaries for all five platforms. Linux targets use `CGO_ENABLED=0` for static linking (works on Alpine/musl and old glibc). Tag format: `vYYMMDD` (e.g. `v260526`). GitHub Actions (`.github/workflows/release.yml`) builds each platform on every tag push and uploads the binaries; for linux it also runs `packaging/build.sh <arch> <tag>` to produce `dist/voidrift-<tag>-linux-<arch>.tar.gz` (with `install.sh`, man pages, init files) and deb/rpm/apk via nfpm (`packaging/nfpm.yaml`; variables are substituted with `sed`). `ci.yml` runs vet, build and test.
 
-Install layout: binaries and man pages under `/opt/voidrift`; config `/etc/voidrift`, data `/var/lib/voidrift`, logs `/var/log/voidrift`. Init files reference `/opt/voidrift/voidrift`; `make install` and `install.sh` rewrite it for a different `PREFIX`. Packages and `install.sh` never enable or start the service.
+Install layout (FHS): binaries `/usr/bin`, man pages `/usr/share/man/man1`, logrotate `/etc/logrotate.d/voidrift`; config `/etc/voidrift`, data `/var/lib/voidrift`, logs `/var/log/voidrift`. Init files reference `/usr/bin/voidrift`; `make install` and `install.sh` rewrite it for a different `PREFIX`. Packages and `install.sh` never enable or start the service.
 
 Binary names: `voidrift-<os>-<arch>[.exe]` and `drifter-<os>-<arch>[.exe]`.
 

@@ -1,0 +1,12 @@
+/var/log/voidrift/*.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    # The bot holds the file open in append mode; truncate in place rather
+    # than signalling it.
+    copytruncate
+    create 0640 voidrift
+}
